@@ -179,13 +179,14 @@ func (e *Evaluator) readBlock() []*Token {
 			block = append(block, token)
 			e.vm.Log("BLOCK %d", depth)
 		case tEOL:
-			e.vm.Log("BLOCK REACHED EOL")
 			if depth > 0 {
 				for i := 0; i < depth; i++ {
 					block = append(block, NewToken(tBLOCKEND, ""))
 				}
 			}
 
+			e.vm.Log("BLOCK REACHED EOL")
+			e.move(-1)
 			return block
 		default:
 			if depth == 0 {
