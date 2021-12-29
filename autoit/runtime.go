@@ -195,9 +195,15 @@ func (vm *AutoItVM) Step() error {
 				if err != nil {
 					return vm.Error("error getting flag value: %v", err)
 				}
-				vm.Log("FLAG %s = %s", token.Data, tValue.Data)
+
 				vm.Move(tRead)
+				vm.Log("FLAG %s = %s", token.Data, tValue.Data)
 			case tEOL:
+				switch token.Data {
+				case "Debug":
+					vm.Logger = true
+				}
+
 				vm.Move(-1)
 				vm.Log("FLAG %s", token.Data)
 			default:

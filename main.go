@@ -12,7 +12,6 @@ func runVM(script []byte) error {
 	if err != nil {
 		return err
 	}
-	vm.Logger = true
 
 	return vm.Run()
 }
