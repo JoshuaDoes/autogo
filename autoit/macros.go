@@ -3,6 +3,7 @@ package autoit
 import (
 	"os"
 	"strconv"
+	"runtime"
 )
 
 func (vm *AutoItVM) GetMacro(macro string) (*Token, error) {
@@ -13,6 +14,13 @@ func (vm *AutoItVM) GetMacro(macro string) (*Token, error) {
 	case "AutoItPID":
 		pid := os.Getpid()
 		return NewToken(tNUMBER, strconv.Itoa(pid)), nil
+	case "AutoItVersion":
+		return NewToken(tSTRING, "3.3.15.4"), nil //Fake the targeted version
+	case "AutoItX64":
+		if runtime.GOARCH == "amd64" {
+			return NewToken(tNUMBER, "1"), nil
+		}
+		return NewToken(tNUMBER, "0"), nil
 	case "CR":
 		return NewToken(tSTRING, "\r"), nil
 	case "LF":
