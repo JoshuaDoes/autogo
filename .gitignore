@@ -1,0 +1,13 @@
+# Output executables
+*.exe
+*.app
+*.old
+
+# Most probable output executables for Linux
+autogo
+
+# Log files
+*.log
+
+# OS leftovers
+desktop.ini
