@@ -104,7 +104,6 @@ func (l *Lexer) ReadToken() (*Token, error) {
 		case ';':
 			token.Type = tCOMMENT
 			token.Data = l.ReadUntil('\n', false)
-			//continue
 		case '$':
 			token.Type = tVARIABLE
 			token.Data = l.ReadIdent()
@@ -294,7 +293,6 @@ func (l *Lexer) ReadUntil(r rune, escapable bool) string {
 	for {
 		rTmp, err := l.ReadRune()
 		if err != nil {
-			//l.Move(-1)
 			break
 		}
 
@@ -321,68 +319,3 @@ func (l *Lexer) Move(pos int) {
 		l.curLinePos = 0
 	}
 }
-
-/*func tokenLexer(script string) []*Token {
-	script = strings.ReplaceAll(script, "\r\n", "\n")
-	script = strings.ReplaceAll(script, "\r", "\n")
-	script = strings.ReplaceAll(script, "\t", " ")
-	lines := strings.Split(script, "\n")
-	tokens := make([][]*Token, 0)
-
-	lexingComment := false
-	lexingQuote := ""
-	for lineNumber, line := range lines {
-		if line != "" {
-			newTokens := make([]*Token, 0)
-			linePos := 0
-			for _, token := range strings.Split(line, " ") {
-				//Skip empty words
-				if token == "" {
-					linePos++ //Someone's using multiple spaces...
-					continue
-				}
-
-				//Skip comment blocks
-				if token[0] == ';' {
-					break
-				}
-				if token == "#comments-start" || token == "#cs" {
-					lexingComment = true
-					break
-				}
-				if lexingComment && (token == "#comments-end" || token == "#ce") {
-					lexingComment = false
-					break
-				}
-				if lexingComment {
-					break
-				}
-
-				/*
-				if token[0] == "\"" {
-					lexingQuote = true
-					if len(token) > 1 {
-						lexingQuoteData
-					}
-				}
-				if lexingQuote {
-					if token[len(token)-1] == "\"" {
-						lexingQuote = false
-					}
-					lexingQuoteData += " " + token
-					break
-				}
-				//
-
-				//Add the token
-				newTokens = append(newTokens, NewToken(token, lineNumber, linePos))
-				linePos += len(token) + 1 //Add current token length and space suffix to simulate character tracking
-			}
-			if len(newTokens) > 0 {
-				tokens = append(tokens, newTokens)
-			}
-		}
-	}
-
-	return tokens
-}*/
