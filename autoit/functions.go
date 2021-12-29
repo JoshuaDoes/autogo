@@ -12,7 +12,7 @@ func (vm *AutoItVM) HandleFunc(funcName string, params []*Token) (*Token, error)
 	case "ConsoleWriteError":
 		return ConsoleWriteError(params[0].Data), nil
 	}
-	return nil, vm.Error("unknown function: %s", funcName)
+	return nil, vm.Error("undefined function: %s", funcName)
 }
 
 func ConsoleWrite(msg string) *Token {

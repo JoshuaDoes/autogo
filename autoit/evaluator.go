@@ -120,16 +120,8 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return nil, e.pos, e.error("illegal token following variable: %v", *tOp)
 		}
 	case tMACRO:
-		switch tEval.Data {
-		case "CR":
-			return NewToken(tSTRING, "\r"), e.pos, nil
-		case "LF":
-			return NewToken(tSTRING, "\n"), e.pos, nil
-		case "CRLF":
-			return NewToken(tSTRING, "\r\n"), e.pos, nil
-		default:
-			return nil, e.pos, e.error("illegal macro: %s", tEval.Data)
-		}
+		tValue, err := e.vm.GetMacro(tEval.Data)
+		return tValue, e.pos, err
 	case tCALL:
 		callTokens := e.readBlock()
 		if callTokens == nil {
