@@ -30,6 +30,8 @@ func (vm *AutoItVM) GetMacro(macro string) (*Token, error) {
 		return NewToken(tSTRING, "\n"), nil
 	case "ScriptDir":
 		return NewToken(tSTRING, filepath.Dir(vm.scriptPath)), nil
+	case "ScriptFullPath":
+		return NewToken(tSTRING, vm.scriptPath), nil
 	case "ScriptName":
 		return NewToken(tSTRING, filepath.Base(vm.scriptPath)), nil
 	}

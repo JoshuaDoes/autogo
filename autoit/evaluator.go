@@ -170,6 +170,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		}
 	case tMACRO:
 		tValue, err := e.vm.GetMacro(tEval.Data)
+		tValue, err = e.mergeValue(tValue)
 		return tValue, e.pos, err
 	case tCALL:
 		callTokens := e.readBlock()
@@ -278,7 +279,7 @@ func (e *Evaluator) evalBlock(block []*Token) []*Token {
 	split := make([]*Token, 0)
 	section := make([]*Token, 0)
 	for i := 0; i < len(block); i++ {
-		e.vm.Log("------- %d EVALUATING %v", *block[i])
+		e.vm.Log("------- %d EVALUATING %v", depth, *block[i])
 		switch block[i].Type {
 		case tBLOCK:
 			depth++

@@ -3,6 +3,8 @@ package autoit
 import (
 	"os"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 
 	"github.com/sqweek/dialog"
@@ -128,6 +130,24 @@ var (
 					return NewToken(tNUMBER, "0"), err
 				}
 				return NewToken(tNUMBER, "1"), nil
+			},
+		},
+		"InetRead": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "url"},
+				&FunctionArg{Name: "options", DefaultValue: NewToken(tNUMBER, "0")},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				resp, err := http.Get(args["url"].Data)
+				if err != nil {
+					return nil, err
+				}
+				defer resp.Body.Close()
+				data, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					return nil, err
+				}
+				return NewToken(tSTRING, string(data)), nil
 			},
 		},
 		"MsgBox": &Function{

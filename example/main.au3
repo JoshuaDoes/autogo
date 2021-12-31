@@ -3,13 +3,13 @@ Example script for interpreter testing
 Use at your own risk
 #ce
 ;#Debug
-$src = FileOpenDialog("Select a file to read...", @ScriptDir, "Any file (*)")
-MsgBox(0, "AutoGo - Source", $src)
-$dst = FileSaveDialog("Choose where to save it to...", @ScriptDir, "Any file (*)")
-MsgBox(0, "AutoGo - Destination", $dst)
+ConsoleWrite("Reading @ScriptFullPath ..." & @CRLF)
+$script = FileRead(@ScriptFullPath)
+ConsoleWrite(@ScriptName & ":" & @CRLF & $script & @CRLF)
+MsgBox(0, "AutoGo: " & @ScriptName, $script)
 
-$data = FileRead($src)
-MsgBox(0, $src, $data)
-#Debug
-$code = FileWrite($dst, $data)
-ConsoleWrite("Wrote data: " & $code & @CRLF)
+$url = "http://www.autoitscript.com/autoit3/files/beta/update.dat"
+ConsoleWrite("Reading " & $url & " ..." & @CRLF)
+$data = InetRead($url)
+ConsoleWrite($data)
+MsgBox(0, "AutoIt: update.dat", $data)
