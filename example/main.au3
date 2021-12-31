@@ -3,14 +3,19 @@ Example script for interpreter testing
 Use at your own risk
 #ce
 ;#Debug
-$iNum = 2 + 3
-ConsoleWrite("Expecting '5': " & $iNum & @CRLF)
-$iNum = $iNum + 2
-ConsoleWrite("Expecting '7': " & $iNum & @CRLF)
-$iNum = $iNum * 2
-ConsoleWrite("Expecting '14': " & $iNum & @CRLF)
-$iNum = $iNum - 2
-ConsoleWrite("Expecting '12': " & $iNum & @CRLF)
+$iNum = 2 + 3 + 5
+ConsoleWrite("Expecting '10': " & $iNum & @CRLF)
+$iNum = $iNum + 2 + 8
+ConsoleWrite("Expecting '20': " & $iNum & @CRLF)
+$iNum = $iNum * 2 * 4 * 2
+ConsoleWrite("Expecting '320': " & $iNum & @CRLF)
+$iNum = $iNum - 2 - 8 - 200
+ConsoleWrite("Expecting '110': " & $iNum & @CRLF)
 
-$iNum = "asdf" + $iNum
-ConsoleWrite("Expecting '12': " & $iNum & @CRLF)
+$iNum = "asdf" + $iNum * 8
+ConsoleWrite("Expecting '880': " & $iNum & @CRLF)
+$iNum = $iNum + "asdf"
+ConsoleWrite("Expecting '880': " & $iNum & @CRLF)
+#Debug
+$iNum = $iNum * 5 & "lol"
+ConsoleWrite("Expecting '4400lol': " & $iNum & @CRLF)

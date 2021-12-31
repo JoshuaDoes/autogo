@@ -26,43 +26,44 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 	case tOP:
 		switch tOp.Data {
 		case "&":
-			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
 			e.move(tRead)
 			if err != nil {
 				return nil, e.error("error getting value to append: %v", err)
 			}
 
-			tDest := NewToken(tSource.Type, tSource.Data)
+			tDest := NewToken(tSTRING, tSource.Data)
 			tDest.Data += tValue.Data
+			e.vm.Log("append: %v", *tDest)
 			return e.mergeValue(tDest)
 		case "+":
-			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
 			e.move(tRead)
 			if err != nil {
 				return nil, e.error("error getting value to sum: %v", err)
 			}
 
-			tDest := NewToken(tSource.Type, strconv.Itoa(tSource.Int() + tValue.Int()))
+			tDest := NewToken(tNUMBER, strconv.Itoa(tSource.Int() + tValue.Int()))
 			e.vm.Log("sum: %v", *tDest)
 			return e.mergeValue(tDest)
 		case "-":
-			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
 			e.move(tRead)
 			if err != nil {
 				return nil, e.error("error getting value to subtract: %v", err)
 			}
 
-			tDest := NewToken(tSource.Type, strconv.Itoa(tSource.Int() - tValue.Int()))
+			tDest := NewToken(tNUMBER, strconv.Itoa(tSource.Int() - tValue.Int()))
 			e.vm.Log("subtract: %v", *tDest)
 			return e.mergeValue(tDest)
 		case "*":
-			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
 			e.move(tRead)
 			if err != nil {
 				return nil, e.error("error getting value to multiply: %v", err)
 			}
 
-			tDest := NewToken(tSource.Type, strconv.Itoa(tSource.Int() * tValue.Int()))
+			tDest := NewToken(tNUMBER, strconv.Itoa(tSource.Int() * tValue.Int()))
 			e.vm.Log("multiply: %v", *tDest)
 			return e.mergeValue(tDest)
 		default:
