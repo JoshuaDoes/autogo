@@ -2,9 +2,12 @@
 Example script for interpreter testing
 Use at your own risk
 #ce
-$sMsg = "Hello, world! I'm running from " & @AutoItExe & " with a PID of " & @AutoItPID & "!"
-ConsoleWrite($sMsg & @CRLF)
-
-#Debug
-$sErr = "This isn't really AutoIt v" & @AutoItVersion & " :c"
-ConsoleWriteError($sErr & @CRLF)
+;#Debug
+$iNum = 2 + 3
+ConsoleWrite("Expecting '5': " & $iNum & @CRLF)
+$iNum = $iNum + 2
+ConsoleWrite("Expecting '7': " & $iNum & @CRLF)
+$iNum = $iNum * 2
+ConsoleWrite("Expecting '14': " & $iNum & @CRLF)
+$iNum = $iNum - 2
+ConsoleWrite("Expecting '12': " & $iNum & @CRLF)

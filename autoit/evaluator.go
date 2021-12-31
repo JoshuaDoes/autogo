@@ -2,6 +2,7 @@ package autoit
 
 import (
 	"fmt"
+	"strconv"
 )
 
 type Evaluator struct {
@@ -33,6 +34,36 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 
 			tDest := NewToken(tSource.Type, tSource.Data)
 			tDest.Data += tValue.Data
+			return e.mergeValue(tDest)
+		case "+":
+			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+			e.move(tRead)
+			if err != nil {
+				return nil, e.error("error getting value to sum: %v", err)
+			}
+
+			tDest := NewToken(tSource.Type, strconv.Itoa(tSource.Int() + tValue.Int()))
+			e.vm.Log("sum: %v", *tDest)
+			return e.mergeValue(tDest)
+		case "-":
+			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+			e.move(tRead)
+			if err != nil {
+				return nil, e.error("error getting value to subtract: %v", err)
+			}
+
+			tDest := NewToken(tSource.Type, strconv.Itoa(tSource.Int() - tValue.Int()))
+			e.vm.Log("subtract: %v", *tDest)
+			return e.mergeValue(tDest)
+		case "*":
+			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+			e.move(tRead)
+			if err != nil {
+				return nil, e.error("error getting value to multiply: %v", err)
+			}
+
+			tDest := NewToken(tSource.Type, strconv.Itoa(tSource.Int() * tValue.Int()))
+			e.vm.Log("multiply: %v", *tDest)
 			return e.mergeValue(tDest)
 		default:
 			e.move(-1)
@@ -76,6 +107,16 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return nil, e.pos, err
 		}
 		return tValue, e.pos, nil
+	case tNUMBER:
+		if !expectValue {
+			return nil, e.pos, e.error("illegal number when not expecting value")
+		}
+
+		tValue, err := e.mergeValue(tEval)
+		if err != nil {
+			return nil, e.pos, err
+		}
+		return tValue, e.pos, nil
 	case tSCOPE:
 		if expectValue {
 			return nil, e.pos, e.error("illegal variable declaration when expecting value")
@@ -83,10 +124,13 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		return nil, e.pos, e.error("scope not implemented")
 	case tVARIABLE:
 		if expectValue {
+			e.vm.Log("expecting value: %v", expectValue)
 			tValue, err := e.mergeValue(e.vm.vars[tEval.Data])
 			if err != nil {
+				e.vm.Log("err: %v", err)
 				return nil, e.pos, err
 			}
+			e.vm.Log("got value: %v", *tValue)
 			return tValue, e.pos, nil
 		}
 
@@ -110,6 +154,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 				}
 
 				e.vm.vars[tEval.Data] = tValue
+				e.vm.Log("$%s = %v", tEval.Data, *tValue)
 				return nil, e.pos+tRead, nil
 			default:
 				e.move(-1)

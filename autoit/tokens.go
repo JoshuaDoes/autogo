@@ -2,6 +2,7 @@ package autoit
 
 import (
 	"strconv"
+	"strings"
 )
 
 type Token struct {
@@ -21,7 +22,12 @@ func (t *Token) Int() int {
 	if t.IsEmpty() {
 		return 0
 	}
-	number, err := strconv.Atoi(t.Data)
+	data := t.Data
+	data = strings.ReplaceAll(data, "\r", "")
+	data = strings.ReplaceAll(data, "\n", "")
+	data = strings.ReplaceAll(data, "\t", "")
+	data = strings.ReplaceAll(data, " ", "")
+	number, err := strconv.Atoi(data)
 	if err != nil {
 		return 1
 	}
