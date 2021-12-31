@@ -33,6 +33,12 @@ func (t *Token) Int() int {
 	}
 	return number
 }
+func (t *Token) Bytes() []byte {
+	if t.IsEmpty() {
+		return make([]byte, 0)
+	}
+	return []byte(t.Data)
+}
 
 type TokenType string
 const (

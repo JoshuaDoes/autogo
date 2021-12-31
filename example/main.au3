@@ -5,9 +5,11 @@ Use at your own risk
 ;#Debug
 $src = FileOpenDialog("Select a file to read...", @ScriptDir, "Any file (*)")
 MsgBox(0, "AutoGo - Source", $src)
-$dir = FileSelectFolder("Choose a folder for fun...", "", 0, @ScriptDir)
-$dst = FileSaveDialog("Choose where to save it to...", $dir, "Any file (*)")
+$dst = FileSaveDialog("Choose where to save it to...", @ScriptDir, "Any file (*)")
 MsgBox(0, "AutoGo - Destination", $dst)
 
-ConsoleWrite("Writing: " & $src & @CRLF & "-> " & $dst & @CRLF)
-;FileWrite($dst, FileRead($src))
+$data = FileRead($src)
+MsgBox(0, $src, $data)
+#Debug
+$code = FileWrite($dst, $data)
+ConsoleWrite("Wrote data: " & $code & @CRLF)

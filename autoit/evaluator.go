@@ -131,7 +131,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 				e.vm.Log("err: %v", err)
 				return nil, e.pos, err
 			}
-			e.vm.Log("got value: %v", tValue)
+			//e.vm.Log("got value: %v", tValue)
 			return tValue, e.pos, nil
 		}
 
@@ -180,6 +180,9 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return tEval, e.pos, nil //Return a pointer to the call rather than evaluating its value
 		}
 		callParams := e.evalBlock(callTokens)
+		if callParams[len(callParams)-1].Type == tBLOCKEND {
+			callParams = callParams[:len(callParams)-1] //Strip leftover BLOCKEND from somewhere, TODO: find it
+		}
 
 		tValue, err := e.vm.HandleFunc(tEval.Data, callParams)
 		return tValue, e.pos, err
@@ -270,25 +273,24 @@ func (e *Evaluator) readBlock() []*Token {
 	return block
 }
 func (e *Evaluator) evalBlock(block []*Token) []*Token {
-	depth := -1
+	depth := 0
 
 	split := make([]*Token, 0)
 	section := make([]*Token, 0)
 	for i := 0; i < len(block); i++ {
-		e.vm.Log("------- EVALUATING %v", *block[i])
+		e.vm.Log("------- %d EVALUATING %v", *block[i])
 		switch block[i].Type {
 		case tBLOCK:
 			depth++
-			if depth == 0 {
-				depth = 1
-			}
-			if depth > 1 {
+			e.vm.Log("depth: %v", depth)
+			if depth > 0 {
 				section = append(section, block[i])
 				e.vm.Log("evalBlock %d: appending section with %v", depth, *block[i])
 			}
 		case tBLOCKEND:
 			depth--
-			if depth >= 1 {
+			e.vm.Log("depth: %v", depth)
+			if depth > 0 {
 				section = append(section, block[i])
 				e.vm.Log("evalBlock %d: appending section with %v", depth, *block[i])
 			}
@@ -305,6 +307,10 @@ func (e *Evaluator) evalBlock(block []*Token) []*Token {
 		default:
 			section = append(section, block[i])
 			e.vm.Log("evalBlock %d: appending section with %v", depth, *block[i])
+		}
+
+		if depth < 0 {
+			break
 		}
 	}
 	if len(section) > 0 {

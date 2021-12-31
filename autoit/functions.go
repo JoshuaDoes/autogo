@@ -101,6 +101,35 @@ var (
 				return NewToken(tSTRING, directory), nil
 			},
 		},
+		"FileRead": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "file"},
+				&FunctionArg{Name: "count", DefaultValue: NewToken(tNUMBER, "0")},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				fileData, err := os.ReadFile(args["file"].Data)
+				if err != nil {
+					return nil, err
+				}
+				if args["count"].Int() > 0 {
+					return NewToken(tSTRING, string(fileData[:args["count"].Int()])), nil
+				}
+				return NewToken(tSTRING, string(fileData)), nil
+			},
+		},
+		"FileWrite": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "file"},
+				&FunctionArg{Name: "data"},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				err := os.WriteFile(args["file"].Data, args["data"].Bytes(), 0666)
+				if err != nil {
+					return NewToken(tNUMBER, "0"), err
+				}
+				return NewToken(tNUMBER, "1"), nil
+			},
+		},
 		"MsgBox": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "flag"},
@@ -161,6 +190,9 @@ func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
 	}
 
 	if len(args) > len(function.Args) {
+		for _, arg := range args {
+			vm.Log("arg: %v", arg)
+		}
 		return nil, vm.Error("%s(%d) called with too many args (%d)", funcName, len(function.Args), len(args))
 	}
 
