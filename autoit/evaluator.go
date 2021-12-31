@@ -41,6 +41,9 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 	case tEOL, tBLOCKEND:
 		e.move(-1)
 		return tSource, nil
+	case tSEPARATOR:
+		e.move(-2)
+		return tSource, nil
 	default:
 		e.move(-1)
 		return nil, e.error("illegal token following value to merge: %v", *tOp)
@@ -130,7 +133,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			}
 			return tEval, e.pos, nil //Return a pointer to the call rather than evaluating its value
 		}
-		callParams := e.splitBlock(callTokens)
+		callParams := e.evalBlock(callTokens)
 
 		tValue, err := e.vm.HandleFunc(tEval.Data, callParams)
 		return tValue, e.pos, err
@@ -188,6 +191,9 @@ func (e *Evaluator) readBlock() []*Token {
 			e.vm.Log("BLOCK REACHED EOL")
 			e.move(-1)
 			return block
+		case tSEPARATOR:
+			block = append(block, token)
+			e.vm.Log("BLOCK FOUND SEPARATOR")
 		default:
 			if depth == 0 {
 				e.move(-1)
@@ -213,7 +219,7 @@ func (e *Evaluator) readBlock() []*Token {
 	e.vm.Log("BLOCK TOTAL: %v", block)
 	return block
 }
-func (e *Evaluator) splitBlock(block []*Token) []*Token {
+func (e *Evaluator) evalBlock(block []*Token) []*Token {
 	depth := -1
 
 	split := make([]*Token, 0)
@@ -227,25 +233,27 @@ func (e *Evaluator) splitBlock(block []*Token) []*Token {
 			}
 			if depth > 1 {
 				section = append(section, block[i])
+				e.vm.Log("evalBlock: appending section with %v", *block[i])
 			}
 		case tBLOCKEND:
 			depth--
 			if depth >= 1 {
 				section = append(section, block[i])
+				e.vm.Log("evalBlock: appending section with %v", *block[i])
 			}
 		case tSEPARATOR:
-			if depth <= 0 {
-				tValue, _, err := NewEvaluator(e.vm, section).Eval(true)
-				if err != nil {
-					return block
-				}
-				split = append(split, tValue)
-				section = make([]*Token, 0)
-			} else {
-				section = append(section, block[i])
+			e.vm.Log("evalBlock: ,")
+			tValue, _, err := NewEvaluator(e.vm, section).Eval(true)
+			if err != nil {
+				e.vm.Log("evalBlock: eval error: %v", err)
+				return block
 			}
+			split = append(split, tValue)
+			e.vm.Log("evalBlock: evaluated as %v", *tValue)
+			section = make([]*Token, 0)
 		default:
 			section = append(section, block[i])
+			e.vm.Log("evalBlock: appending section with %v", *block[i])
 		}
 	}
 	if len(section) > 0 {
@@ -254,6 +262,7 @@ func (e *Evaluator) splitBlock(block []*Token) []*Token {
 			return block
 		}
 		split = append(split, tValue)
+		e.vm.Log("evalBlock: evaluated final section as %v", *tValue)
 	}
 
 	return split
