@@ -1,5 +1,1 @@
-$ErrorActionPreference = "Stop"
-cd ..
-go build -ldflags="-s -w" -o example\autogo.exe
-cd example
-.\autogo.exe $args
+cd .. && (go build -ldflags="-s -w" -o example\autogo.exe || (cd example && Write-Error 'Failed to build autogo.' -ErrorAction Stop)) && cd example && .\autogo.exe $args
