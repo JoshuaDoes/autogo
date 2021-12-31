@@ -55,6 +55,52 @@ var (
 				return NewToken(tSTRING, file), nil
 			},
 		},
+		"FileSaveDialog": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "title"},
+				&FunctionArg{Name: "initDir"},
+				&FunctionArg{Name: "filter"},
+				&FunctionArg{Name: "options", DefaultValue: NewToken(tNUMBER, "0")},
+				&FunctionArg{Name: "defaultName", DefaultValue: NewToken(tSTRING, "")},
+				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, "0")},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				filterSplit := strings.Split(args["filter"].Data, "(")
+				if len(filterSplit) < 2 {
+					return nil, vm.Error("invalid file filter `%s`: %v", args["filter"].Data, filterSplit)
+				}
+				filterSplit2 := strings.Split(filterSplit[1], ")")
+				filters := strings.Split(filterSplit2[0], "|")
+
+				file, err := dialog.File().Title(args["title"].Data).SetStartDir(args["initDir"].Data).Filter(args["filter"].Data, filters...).Save()
+				if err != nil {
+					if err == dialog.ErrCancelled {
+						return NewToken(tSTRING, ""), nil
+					}
+					return nil, err
+				}
+				return NewToken(tSTRING, file), nil
+			},
+		},
+		"FileSelectFolder": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "dialogText"},
+				&FunctionArg{Name: "rootDir"},
+				&FunctionArg{Name: "flag", DefaultValue: NewToken(tNUMBER, "0")},
+				&FunctionArg{Name: "initialDir", DefaultValue: NewToken(tSTRING, "")},
+				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, "0")},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				directory, err := dialog.Directory().Title(args["dialogText"].Data).SetStartDir(args["initialDir"].Data).Browse()
+				if err != nil {
+					if err == dialog.ErrCancelled {
+						return NewToken(tSTRING, ""), nil
+					}
+					return nil, err
+				}
+				return NewToken(tSTRING, directory), nil
+			},
+		},
 		"MsgBox": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "flag"},
