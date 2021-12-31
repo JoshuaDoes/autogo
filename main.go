@@ -7,8 +7,8 @@ import (
 	"github.com/JoshuaDoes/autogo/autoit"
 )
 
-func runVM(script []byte) error {
-	vm, err := autoit.NewAutoItVM(script)
+func runVM(scriptPath string, script []byte) error {
+	vm, err := autoit.NewAutoItVM(scriptPath, script)
 	if err != nil {
 		return err
 	}
@@ -24,13 +24,13 @@ func main() {
 				panic(err)
 			}
 
-			err = runVM(script)
+			err = runVM(scriptFile, script)
 			if err != nil {
 				fmt.Println(err)
 			}
 		}
 	} else {
-		err := runVM([]byte(";INTERNAL SCRIPT\n#include \"main.au3\""))
+		err := runVM(os.Args[0], []byte(";INTERNAL SCRIPT\n#include \"main.au3\""))
 		if err != nil {
 			fmt.Println(err)
 		}

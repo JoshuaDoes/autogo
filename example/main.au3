@@ -19,3 +19,10 @@ ConsoleWrite("Expecting '880': " & $iNum & @CRLF)
 #Debug
 $iNum = $iNum * 5 & "lol"
 ConsoleWrite("Expecting '4400lol': " & $iNum & @CRLF)
+
+MsgBox(0, "AutoGo", "Final result: " & $iNum)
+$iYesNo = MsgBox(4, "AutoGo", "Yes or no?")
+MsgBox(16, "AutoGo", "You chose: " & $iYesNo)
+
+$sFilePath = FileOpenDialog("Select a file to read...", @ScriptDir, "Any file (*)")
+MsgBox(0, "AutoGo - File", $sFilePath)

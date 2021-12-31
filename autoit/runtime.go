@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"time"
+	"path/filepath"
 )
 
 type AutoItVM struct {
@@ -12,18 +13,20 @@ type AutoItVM struct {
 	Logger bool
 	
 	//Runtime
+	scriptPath string
 	tokens []*Token
 	pos int
 	running bool
 	suspended bool
 	vars map[string]*Token
-
-	//Counters and trackers
-	region int
-	block int
 }
 
-func NewAutoItVM(script []byte) (*AutoItVM, error) {
+func NewAutoItVM(scriptPath string, script []byte) (*AutoItVM, error) {
+	scriptPath, err := filepath.Abs(scriptPath)
+	if err != nil {
+		return nil, err
+	}
+
 	lexer := NewLexer(script)
 	tokens, err := lexer.GetTokens()
 	if err != nil {
@@ -31,6 +34,7 @@ func NewAutoItVM(script []byte) (*AutoItVM, error) {
 	}
 
 	return &AutoItVM{
+		scriptPath: scriptPath,
 		tokens: tokens,
 	}, nil
 }

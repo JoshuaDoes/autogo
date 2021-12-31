@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"runtime"
+	"path/filepath"
 )
 
 func (vm *AutoItVM) GetMacro(macro string) (*Token, error) {
@@ -23,10 +24,14 @@ func (vm *AutoItVM) GetMacro(macro string) (*Token, error) {
 		return NewToken(tNUMBER, "0"), nil
 	case "CR":
 		return NewToken(tSTRING, "\r"), nil
-	case "LF":
-		return NewToken(tSTRING, "\n"), nil
 	case "CRLF":
 		return NewToken(tSTRING, "\r\n"), nil
+	case "LF":
+		return NewToken(tSTRING, "\n"), nil
+	case "ScriptDir":
+		return NewToken(tSTRING, filepath.Dir(vm.scriptPath)), nil
+	case "ScriptName":
+		return NewToken(tSTRING, filepath.Base(vm.scriptPath)), nil
 	}
 	return nil, vm.Error("illegal macro: %s", macro)
 }
