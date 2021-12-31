@@ -29,7 +29,7 @@ func (t *Token) Int() int {
 	data = strings.ReplaceAll(data, " ", "")
 	number, err := strconv.Atoi(data)
 	if err != nil {
-		return 1
+		return 0
 	}
 	return number
 }

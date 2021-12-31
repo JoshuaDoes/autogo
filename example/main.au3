@@ -11,3 +11,6 @@ $iNum = $iNum * 2
 ConsoleWrite("Expecting '14': " & $iNum & @CRLF)
 $iNum = $iNum - 2
 ConsoleWrite("Expecting '12': " & $iNum & @CRLF)
+
+$iNum = "asdf" + $iNum
+ConsoleWrite("Expecting '12': " & $iNum & @CRLF)
