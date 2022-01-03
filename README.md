@@ -54,7 +54,8 @@ func main() {
 	}
 
 	fmt.Println("Starting VM...")
-	vm, err := autoit.NewAutoItVM("Hello World.au3", script, nil)
+	debugScript := append([]byte(`#Debug`), script...)
+	vm, err := autoit.NewAutoItVM("Hello World.au3", debugScript, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -64,6 +65,58 @@ func main() {
 		panic(err)
 	}
 }
+```
+Output (may be a little out of date):
+```
+PS C:\..\go\src\github.com\JoshuaDoes\autogo\example> .\windows.ps1
+Token 0: {EOL  0 0}
+Token 1: {VARIABLE sNoun 1 0}
+Token 2: {OP = 1 6}
+Token 3: {STRING world 1 8}
+Token 4: {EOL  1 16}
+Token 5: {CALL ConsoleWrite 2 0}
+Token 6: {BLOCK ( 2 12}
+Token 7: {STRING Hello,  2 13}
+Token 8: {OP & 2 22}
+Token 9: {VARIABLE sNoun 2 24}
+Token 10: {OP & 2 31}
+Token 11: {STRING ! 2 33}
+Token 12: {OP & 2 37}
+Token 13: {MACRO CRLF 2 39}
+Token 14: {BLOCKEND ) 2 45}
+Token 15: {EOL  2 46}
+Starting VM...
+vm: FLAG Debug
+vm: VARIABLE sNoun
+vm: evaluating {VARIABLE sNoun 2 0}
+vm: evaluating {STRING world 2 8}
+vm: $sNoun = {STRING world 2 8}
+vm: CALL ConsoleWrite
+vm: evaluating {CALL ConsoleWrite 3 0}
+vm: BLOCK 1
+vm: evaluating {STRING Hello,  3 13}
+vm: evaluating {VARIABLE sNoun 3 24}
+vm: expecting value for: {VARIABLE sNoun 3 24}
+vm: append: {STRING Hello, world 0 0}
+vm: evaluating {STRING ! 3 33}
+vm: append: {STRING Hello, world! 0 0}
+vm: evaluating {MACRO CRLF 3 39}
+vm: append: {STRING Hello, world!
+ 0 0}
+vm: BLOCK 1: {STRING Hello,  3 13} = &{STRING Hello, world!
+ 0 0}
+vm: BLOCK REACHED EOL
+vm: ------- 0 EVALUATING {STRING Hello, world!
+ 0 0}
+vm: evalBlock 0: appending section with {STRING Hello, world!
+ 0 0}
+vm: ------- 0 EVALUATING {BLOCKEND  0 0}
+vm: depth: -1
+vm: evaluating {STRING Hello, world!
+ 0 0}
+vm: evalBlock: evaluated final section as {STRING Hello, world!
+ 0 0}
+Hello, world!
 ```
 
 AutoGo provides a simple cmd implementation as the primary example. It either reads scripts from file that were passed in from the command line and executes them, or it executes its own internal script if you don't pass any arguments (which currently attempts to run "main.au3" relative to the current directory, and exits with error code 1 if it fails to find it). This cmd may later be upgraded to be a drop-in replacement for the AutoIt SciTE environment's various tools.
