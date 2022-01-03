@@ -2,9 +2,7 @@
 Example script for interpreter testing
 Use at your own risk
 #ce
-;#debug
-$url = "http://www.autoitscript.com/autoit3/files/beta/update.dat"
-consoleWrite("Reading " & $URL & " ..." & @CrLf)
-$data = inetRead($url)
-Consolewrite($data)
-msgBox(0, "AutoIt: update.dat", $DATA)
+$timeStart = TimerInit()
+$iNum = 13 + 3.2 * 2 / 8.0
+$timeEnd = TimerDiff($timeStart)
+ConsoleWrite("Evaluated (13 + 3.2 * 2 / 8.0) as (" & $iNum & ") in " & $timeEnd & " milliseconds" & @CRLF)

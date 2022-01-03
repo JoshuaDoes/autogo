@@ -77,6 +77,8 @@ func (vm *AutoItVM) Step() error {
 	}
 
 	switch token.Type {
+	case tILLEGAL:
+		return vm.Error("illegal token encountered: %v", *token)
 	case tEXIT:
 		tExitCode := vm.ReadToken()
 		if tExitCode != nil {

@@ -2,7 +2,6 @@ package autoit
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type Evaluator struct {
@@ -46,7 +45,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 				return nil, e.error("error getting value to sum: %v", err)
 			}
 
-			tDest := NewToken(tNUMBER, strconv.Itoa(tSource.Int() + tValue.Int()))
+			tDest := NewToken(tNUMBER, tSource.Float64() + tValue.Float64())
 			e.vm.Log("sum: %v", *tDest)
 			return e.mergeValue(tDest)
 		case "-":
@@ -56,7 +55,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 				return nil, e.error("error getting value to subtract: %v", err)
 			}
 
-			tDest := NewToken(tNUMBER, strconv.Itoa(tSource.Int() - tValue.Int()))
+			tDest := NewToken(tNUMBER, tSource.Float64() - tValue.Float64())
 			e.vm.Log("subtract: %v", *tDest)
 			return e.mergeValue(tDest)
 		case "*":
@@ -66,8 +65,18 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 				return nil, e.error("error getting value to multiply: %v", err)
 			}
 
-			tDest := NewToken(tNUMBER, strconv.Itoa(tSource.Int() * tValue.Int()))
+			tDest := NewToken(tNUMBER, tSource.Float64() * tValue.Float64())
 			e.vm.Log("multiply: %v", *tDest)
+			return e.mergeValue(tDest)
+		case "/":
+			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
+			e.move(tRead)
+			if err != nil {
+				return nil, e.error("error getting value to divide: %v", err)
+			}
+
+			tDest := NewToken(tNUMBER, tSource.Float64() / tValue.Float64())
+			e.vm.Log("divide: %v", *tDest)
 			return e.mergeValue(tDest)
 		default:
 			e.move(-1)

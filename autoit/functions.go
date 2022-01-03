@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/sqweek/dialog"
 )
@@ -174,6 +175,23 @@ var (
 					return NewToken(tNUMBER, "1"), nil //$IDOK
 				}
 				return nil, nil
+			},
+		},
+		"timerdiff": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "handle"},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				then := time.Unix(0, args["handle"].Int64() * int64(time.Millisecond))
+				now := time.Now()
+				diff := now.Sub(then)
+				vm.Log("timerdiff: then(%s) now(%s) diff(%s)", then, now, diff)
+				return NewToken(tNUMBER, diff.Milliseconds()), nil
+			},
+		},
+		"timerinit": &Function{
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				return NewToken(tNUMBER, time.Now().UnixNano() / int64(time.Millisecond)), nil
 			},
 		},
 		/*"consolewriteline": &Function{

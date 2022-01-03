@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"unicode"
 )
@@ -120,104 +119,106 @@ func (l *Lexer) ReadToken() (*Token, error) {
 		case '=', '&', '+', '-', '*', '/', '<', '>':
 			token.Type = tOP
 
-			rTmp, err := l.ReadRune()
-			if err == nil && rTmp == '=' {
+			rEquals, err := l.ReadRune()
+			if err == nil && rEquals == '=' {
 				token.Data += "="
 			} else {
 				l.Move(-1)
 			}
 		default:
-			if isIdent(r) {
-				token.Type = tCALL
+			if unicode.IsDigit(r) {
 				l.Move(-1)
-				token.Data = l.ReadIdent()
-				if _, numErr := strconv.Atoi(token.Data); numErr == nil {
+				tmpNumber, err := l.ReadNumber()
+				if err == nil {
 					token.Type = tNUMBER
-					//TODO: Do a check for a period followed by another number, it's a floating point number!
-				} else {
-					switch strings.ToLower(token.Data) {
-						case "exit":
-							token.Type = tEXIT
-						case "null":
-							token.Type = tNULL
-						case "default":
-							token.Type = tDEFAULT
-						case "true":
-							token.Type = tBOOLEAN
-						case "false":
-							token.Type = tBOOLEAN
-						case "func":
-							token.Type = tFUNC
-						case "return":
-							token.Type = tFUNCRETURN
-						case "endfunc":
-							token.Type = tFUNCEND
-						case "if":
-							token.Type = tIF
-						case "then":
-							token.Type = tTHEN
-						case "else":
-							token.Type = tELSE
-						case "elseif":
-							token.Type = tELSEIF
-						case "endif":
-							token.Type = tIFEND
-						case "for":
-							token.Type = tFOR
-						case "to":
-							token.Type = tTO
-						case "step":
-							token.Type = tSTEP
-						case "in":
-							token.Type = tIN
-						case "next":
-							token.Type = tNEXT
-						case "while":
-							token.Type = tWHILE
-						case "wend":
-							token.Type = tWEND
-						case "with":
-							token.Type = tWITH
-						case "endwith":
-							token.Type = tWITHEND
-						case "do":
-							token.Type = tDO
-						case "until":
-							token.Type = tUNTIL
-						case "switch":
-							token.Type = tSWITCH
-						case "endswitch":
-							token.Type = tSWITCHEND
-						case "select":
-							token.Type = tSELECT
-						case "endselect":
-							token.Type = tSELECTEND
-						case "case":
-							token.Type = tCASE
-						case "continuecase":
-							token.Type = tCASEREPEAT
-						case "continueloop":
-							token.Type = tLOOPREPEAT
-						case "exitloop":
-							token.Type = tLOOPEXIT
-						case "dim":
-							token.Type = tSCOPE
-							token.Data = "Local"
-						case "redim":
-							token.Type = tREVAR
-						case "local":
-							token.Type = tSCOPE
-						case "global":
-							token.Type = tSCOPE
-						case "const":
-							token.Type = tSCOPE
-						case "static":
-							token.Type = tSCOPE
-						case "enum":
-							token.Type = tENUM
-						case "volatile":
-							token.Type = tVOLATILE
-					}
+					token.Data = tmpNumber
+				}
+			} else if isIdent(r) {
+				l.Move(-1)
+				token.Type = tCALL
+				token.Data = l.ReadIdent()
+				switch strings.ToLower(token.Data) {
+					case "exit":
+						token.Type = tEXIT
+					case "null":
+						token.Type = tNULL
+					case "default":
+						token.Type = tDEFAULT
+					case "true":
+						token.Type = tBOOLEAN
+					case "false":
+						token.Type = tBOOLEAN
+					case "func":
+						token.Type = tFUNC
+					case "return":
+						token.Type = tFUNCRETURN
+					case "endfunc":
+						token.Type = tFUNCEND
+					case "if":
+						token.Type = tIF
+					case "then":
+						token.Type = tTHEN
+					case "else":
+						token.Type = tELSE
+					case "elseif":
+						token.Type = tELSEIF
+					case "endif":
+						token.Type = tIFEND
+					case "for":
+						token.Type = tFOR
+					case "to":
+						token.Type = tTO
+					case "step":
+						token.Type = tSTEP
+					case "in":
+						token.Type = tIN
+					case "next":
+						token.Type = tNEXT
+					case "while":
+						token.Type = tWHILE
+					case "wend":
+						token.Type = tWEND
+					case "with":
+						token.Type = tWITH
+					case "endwith":
+						token.Type = tWITHEND
+					case "do":
+						token.Type = tDO
+					case "until":
+						token.Type = tUNTIL
+					case "switch":
+						token.Type = tSWITCH
+					case "endswitch":
+						token.Type = tSWITCHEND
+					case "select":
+						token.Type = tSELECT
+					case "endselect":
+						token.Type = tSELECTEND
+					case "case":
+						token.Type = tCASE
+					case "continuecase":
+						token.Type = tCASEREPEAT
+					case "continueloop":
+						token.Type = tLOOPREPEAT
+					case "exitloop":
+						token.Type = tLOOPEXIT
+					case "dim":
+						token.Type = tSCOPE
+						token.Data = "Local"
+					case "redim":
+						token.Type = tREVAR
+					case "local":
+						token.Type = tSCOPE
+					case "global":
+						token.Type = tSCOPE
+					case "const":
+						token.Type = tSCOPE
+					case "static":
+						token.Type = tSCOPE
+					case "enum":
+						token.Type = tENUM
+					case "volatile":
+						token.Type = tVOLATILE
 				}
 			}
 		}
@@ -241,6 +242,32 @@ func (l *Lexer) ReadRune() (rune, error) {
 	}
 
 	return r, nil
+}
+func (l *Lexer) ReadNumber() (string, error) {
+	read := ""
+	readDeci := false
+	for {
+		r, err := l.ReadRune()
+		if err == io.EOF {
+			break
+		}
+		if r == '.' {
+			if readDeci {
+				return "", fmt.Errorf("two decimal places in number")
+			}
+			read += "."
+			readDeci = true
+			continue
+		}
+		if unicode.IsDigit(r) {
+			read += string(r)
+			continue
+		}
+
+		l.Move(-1)
+		break
+	}
+	return read, nil
 }
 func isIdent(r rune) bool {
 	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_'

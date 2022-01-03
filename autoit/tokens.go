@@ -1,6 +1,7 @@
 package autoit
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -11,8 +12,22 @@ type Token struct {
 	LineNumber int       //Starts from 0
 	LinePos    int       //Starts from 0
 }
-func NewToken(tType TokenType, data string) *Token {
-	return &Token{Type: tType, Data: data}
+func NewToken(tType TokenType, data interface{}) *Token {
+	switch data.(type) {
+	case int, int32, int64:
+		return &Token{Type: tType, Data: fmt.Sprintf("%d", data)}
+	case float32, float64:
+		return &Token{Type: tType, Data: fmt.Sprintf("%d", data)}
+	case string:
+		return &Token{Type: tType, Data: data.(string)}
+	case bool:
+		boolTF := data.(bool)
+		if boolTF {
+			return &Token{Type: tType, Data: "True"}
+		}
+		return &Token{Type: tType, Data: "False"}
+	}
+	return &Token{Type: tType, Data: fmt.Sprintf("%v", data)}
 }
 
 func (t *Token) IsEmpty() bool {
@@ -28,6 +43,36 @@ func (t *Token) Int() int {
 	data = strings.ReplaceAll(data, "\t", "")
 	data = strings.ReplaceAll(data, " ", "")
 	number, err := strconv.Atoi(data)
+	if err != nil {
+		return 0
+	}
+	return number
+}
+func (t *Token) Int64() int64 {
+	if t.IsEmpty() {
+		return 0
+	}
+	data := t.Data
+	data = strings.ReplaceAll(data, "\r", "")
+	data = strings.ReplaceAll(data, "\n", "")
+	data = strings.ReplaceAll(data, "\t", "")
+	data = strings.ReplaceAll(data, " ", "")
+	number, err := strconv.ParseInt(data, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return number
+}
+func (t *Token) Float64() float64 {
+	if t.IsEmpty() {
+		return 0
+	}
+	data := t.Data
+	data = strings.ReplaceAll(data, "\r", "")
+	data = strings.ReplaceAll(data, "\n", "")
+	data = strings.ReplaceAll(data, "\t", "")
+	data = strings.ReplaceAll(data, " ", "")
+	number, err := strconv.ParseFloat(data, 64)
 	if err != nil {
 		return 0
 	}
