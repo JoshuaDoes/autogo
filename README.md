@@ -4,7 +4,7 @@
 * WARNING: AutoGo is not yet feature complete. Some syntax features are still missing, the lexing logic may have flaws, and the internal function list is nowhere near ready for running production level scripts. Any functionality missing from AutoGo but present in AutoIt is considered a bug.
 
 ## What is AutoIt?
-AutoIt was developed as a procedural scripting language for Windows by Jonathan Bennett and first appeared in January of 1999. It began as a statement-driven language designed to automate user interactions, but over time and especially in AutoIt v3 it became a general purpose language with a syntax similar to BASIC and a focus on providing access to all of the Windows API through internal functions. The main feature that made AutoIt simpler to develop for versus other scripting languages was the ability to store various useful data types in what's internally a variant data type, to remain type agnostic in most expressions (except for where conversions are clearly needed, such as treating hex strings as binary).
+[AutoIt](https://www.autoitscript.com/) was developed as a procedural scripting language for Windows by Jonathan Bennett and first appeared in January of 1999. It began as a statement-driven language designed to automate user interactions, but over time and especially in AutoIt v3 it became a general purpose language with a syntax similar to BASIC and a focus on providing access to all of the Windows API through internal functions. The main feature that made AutoIt simpler to develop for versus other scripting languages was the ability to store various useful data types in what's internally a variant data type, to remain type agnostic in most expressions (except for where conversions are clearly needed, such as treating hex strings as binary).
 
 ## What is AutoGo?
 AutoGo is a project I began at the tail end of 2021 in the quest to teach myself how to write a programming language. I decided that since I have a long history of AutoIt in my early programming and it's simple enough for any seasoned developer to understand, it would make for a good specification to try adhering to as efficiently as I know how using my own favorite language, Go. Why auto it (Windows) when you can auto Go (not just Windows)?
@@ -17,13 +17,13 @@ Enter winelib. Or at least, when I get around to it. For the time being I'll use
 ## How can I use it?
 Because I made the decision to write AutoGo as a package at heart instead of just a program, there are three ways to use it: Installing the runtime, then either executing it with .au3 script files or executing it in interactive mode, or importing the package and spawning an unlimited number of interactable AutoIt VMs that can evaluate any given script block.
 
-### Installing the runtime
+### Installing the runtime to your GOBIN directory
 `go install github.com/JoshuaDoes/autogo`
 
 ### Executing an AutoIt script
 `autogo "Hello World.au3"`
 
-### Running in interactive mode
+### Running in interactive mode (NOTE: not yet implemented!)
 `autogo -i` OR `autogo /i`
 
 ### Using AutoIt in Go
