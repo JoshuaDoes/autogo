@@ -9,19 +9,22 @@ import (
 )
 
 type AutoItVM struct {
-	//Config
+	//Runtime configuration
 	Logger bool
 	
-	//Runtime
+	//Script trackers
 	scriptPath string
 	tokens []*Token
 	pos int
+
+	//Runtime and memory
 	running bool
 	suspended bool
 	vars map[string]*Token
+	parentScope *AutoItVM
 }
 
-func NewAutoItVM(scriptPath string, script []byte) (*AutoItVM, error) {
+func NewAutoItVM(scriptPath string, script []byte, parentScope *AutoItVM) (*AutoItVM, error) {
 	scriptPath, err := filepath.Abs(scriptPath)
 	if err != nil {
 		return nil, err
@@ -36,6 +39,7 @@ func NewAutoItVM(scriptPath string, script []byte) (*AutoItVM, error) {
 	return &AutoItVM{
 		scriptPath: scriptPath,
 		tokens: tokens,
+		parentScope: parentScope,
 	}, nil
 }
 
@@ -61,62 +65,6 @@ func (vm *AutoItVM) Run() error {
 		}
 	}
 	return nil
-}
-
-func (vm *AutoItVM) Log(format string, params ...interface{}) {
-	if !vm.Logger {
-		return
-	}
-	if format[len(format)-1] != '\n' {
-		format += "\n"
-	}
-	if params != nil {
-		fmt.Printf("vm: " + format, params...)
-	} else {
-		fmt.Printf("vm: " + format)
-	}
-}
-func (vm *AutoItVM) Error(format string, params ...interface{}) error {
-	if params != nil {
-		return fmt.Errorf("autoit: " + format, params...)
-	}
-	return fmt.Errorf("autoit: " + format)
-}
-
-func (vm *AutoItVM) Tokens() []*Token {
-	return vm.tokens
-}
-func (vm *AutoItVM) Running() bool {
-	return vm.running
-}
-func (vm *AutoItVM) Suspended() bool {
-	return vm.suspended
-}
-func (vm *AutoItVM) Suspend() {
-	vm.suspended = true
-}
-func (vm *AutoItVM) Resume() {
-	vm.suspended = false
-}
-func (vm *AutoItVM) Stop() {
-	vm.running = false
-	vm.suspended = false
-	vm.pos = 0
-	vm.vars = make(map[string]*Token)
-}
-
-func (vm *AutoItVM) Token() *Token {
-	return vm.tokens[vm.pos]
-}
-func (vm *AutoItVM) ReadToken() *Token {
-	if vm.pos >= len(vm.tokens) {
-		return nil
-	}
-	defer vm.Move(1)
-	return vm.tokens[vm.pos]
-}
-func (vm *AutoItVM) Move(pos int) {
-	vm.pos += pos
 }
 func (vm *AutoItVM) Step() error {
 	token := vm.ReadToken()
@@ -234,4 +182,76 @@ func (vm *AutoItVM) Step() error {
 	}
 
 	return nil
+}
+
+func (vm *AutoItVM) Log(format string, params ...interface{}) {
+	if !vm.Logger {
+		return
+	}
+	if format[len(format)-1] != '\n' {
+		format += "\n"
+	}
+	if params != nil {
+		fmt.Printf("vm: " + format, params...)
+	} else {
+		fmt.Printf("vm: " + format)
+	}
+}
+func (vm *AutoItVM) Error(format string, params ...interface{}) error {
+	if params != nil {
+		return fmt.Errorf("autoit: " + format, params...)
+	}
+	return fmt.Errorf("autoit: " + format)
+}
+
+func (vm *AutoItVM) Running() bool {
+	return vm.running
+}
+func (vm *AutoItVM) Suspended() bool {
+	return vm.suspended
+}
+func (vm *AutoItVM) Suspend() {
+	vm.suspended = true
+}
+func (vm *AutoItVM) Resume() {
+	vm.suspended = false
+}
+func (vm *AutoItVM) Stop() {
+	vm.running = false
+	vm.suspended = false
+	vm.pos = 0
+	vm.vars = make(map[string]*Token)
+}
+
+func (vm *AutoItVM) Tokens() []*Token {
+	return vm.tokens
+}
+func (vm *AutoItVM) Token() *Token {
+	return vm.tokens[vm.pos]
+}
+func (vm *AutoItVM) ReadToken() *Token {
+	if vm.pos >= len(vm.tokens) {
+		return nil
+	}
+	defer vm.Move(1)
+	return vm.tokens[vm.pos]
+}
+func (vm *AutoItVM) Move(pos int) {
+	vm.pos += pos
+}
+
+//GetVariable returns the specified variable or nil if it doesn't exist
+func (vm *AutoItVM) GetVariable(variableName string) (*Token) {
+	if variable, exists := vm.vars[variableName]; exists {
+		return variable
+	}
+	if vm.parentScope != nil {
+		if variable := vm.parentScope.GetVariable(variableName); variable != nil {
+			return variable
+		}
+	}
+	return nil
+}
+func (vm *AutoItVM) SetVariable(variableName string, token *Token) {
+	vm.vars[variableName] = token
 }

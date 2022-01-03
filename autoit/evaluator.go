@@ -126,7 +126,12 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 	case tVARIABLE:
 		if expectValue {
 			e.vm.Log("expecting value for: %v", *tEval)
-			tValue, err := e.mergeValue(e.vm.vars[tEval.Data])
+			tVariable := e.vm.GetVariable(tEval.Data)
+			if tVariable == nil {
+				e.vm.Log("err: %v", e.error("$%s: undeclared global variable", tEval.Data))
+				return nil, e.pos, e.error("$%s: undeclared global variable", tEval.Data)
+			}
+			tValue, err := e.mergeValue(tVariable)
 			if err != nil {
 				e.vm.Log("err: %v", err)
 				return nil, e.pos, err
@@ -138,7 +143,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		tOp := e.readToken()
 		if tOp == nil {
 			e.move(-1)
-			return e.vm.vars[tEval.Data], e.pos, nil
+			return e.vm.GetVariable(tEval.Data), e.pos, nil
 		}
 
 		switch tOp.Type {
@@ -154,7 +159,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 					return nil, e.pos+tRead, e.error("error getting value for variable declaration: %v", err)
 				}
 
-				e.vm.vars[tEval.Data] = tValue
+				e.vm.SetVariable(tEval.Data, tValue)
 				e.vm.Log("$%s = %v", tEval.Data, *tValue)
 				return nil, e.pos+tRead, nil
 			default:
@@ -163,7 +168,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			}
 		case tEOL, tBLOCKEND:
 			e.move(-1)
-			return e.vm.vars[tEval.Data], e.pos, nil //Return the evaluated value
+			return e.vm.GetVariable(tEval.Data), e.pos, nil //Return the evaluated value
 		default:
 			e.move(-1)
 			return nil, e.pos, e.error("illegal token following variable: %v", *tOp)
@@ -173,7 +178,10 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		tValue, err = e.mergeValue(tValue)
 		return tValue, e.pos, err
 	case tCALL:
-		callTokens := e.readBlock()
+		callTokens, err := e.readBlock()
+		if err != nil {
+			return nil, e.pos, err
+		}
 		if callTokens == nil {
 			if !expectValue {
 				return nil, e.pos, e.error("call requires parameter block")
@@ -208,7 +216,7 @@ func (e *Evaluator) readToken() *Token {
 	defer e.move(1)
 	return e.tokens[e.pos]
 }
-func (e *Evaluator) readBlock() []*Token {
+func (e *Evaluator) readBlock() ([]*Token, error) {
 	block := make([]*Token, 0)
 	depth := -1
 
@@ -216,7 +224,7 @@ func (e *Evaluator) readBlock() []*Token {
 		token := e.readToken()
 		if token == nil {
 			e.vm.Log("BLOCK REACHED EOF")
-			return block
+			return block, nil
 		}
 
 		switch token.Type {
@@ -244,14 +252,14 @@ func (e *Evaluator) readBlock() []*Token {
 
 			e.vm.Log("BLOCK REACHED EOL")
 			e.move(-1)
-			return block
+			return block, nil
 		case tSEPARATOR:
 			block = append(block, token)
 			e.vm.Log("BLOCK FOUND SEPARATOR")
 		default:
 			if depth == 0 {
 				e.move(-1)
-				return block
+				return block, nil
 			}
 
 			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos-1:]).Eval(true)
@@ -259,7 +267,7 @@ func (e *Evaluator) readBlock() []*Token {
 			if err != nil {
 				e.vm.Log("BLOCK %d ERR: %v, %v", depth, *token, err)
 				e.move(-1)
-				return nil
+				return nil, err
 			} else {
 				e.vm.Log("BLOCK %d: %v = %v", depth, *token, tValue)
 				block = append(block, tValue)
@@ -271,7 +279,7 @@ func (e *Evaluator) readBlock() []*Token {
 		}
 	}
 	e.vm.Log("BLOCK TOTAL: %v", block)
-	return block
+	return block, nil
 }
 func (e *Evaluator) evalBlock(block []*Token) []*Token {
 	depth := 0
@@ -327,7 +335,7 @@ func (e *Evaluator) evalBlock(block []*Token) []*Token {
 }
 func (e *Evaluator) error(format string, params ...interface{}) error {
 	if params != nil {
-		return fmt.Errorf("eval: " + format, params)
+		return fmt.Errorf("eval: " + format, params...)
 	}
 	return fmt.Errorf("eval: " + format)
 }
