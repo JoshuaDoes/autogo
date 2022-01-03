@@ -135,87 +135,87 @@ func (l *Lexer) ReadToken() (*Token, error) {
 					token.Type = tNUMBER
 					//TODO: Do a check for a period followed by another number, it's a floating point number!
 				} else {
-					switch token.Data {
-						case "Exit":
+					switch strings.ToLower(token.Data) {
+						case "exit":
 							token.Type = tEXIT
-						case "Null":
+						case "null":
 							token.Type = tNULL
-						case "Default":
+						case "default":
 							token.Type = tDEFAULT
-						case "True":
+						case "true":
 							token.Type = tBOOLEAN
-						case "False":
+						case "false":
 							token.Type = tBOOLEAN
-						case "Func":
+						case "func":
 							token.Type = tFUNC
-						case "Return":
+						case "return":
 							token.Type = tFUNCRETURN
-						case "EndFunc":
+						case "endfunc":
 							token.Type = tFUNCEND
-						case "If":
+						case "if":
 							token.Type = tIF
-						case "Then":
+						case "then":
 							token.Type = tTHEN
-						case "Else":
+						case "else":
 							token.Type = tELSE
-						case "ElseIf":
+						case "elseif":
 							token.Type = tELSEIF
-						case "EndIf":
+						case "endif":
 							token.Type = tIFEND
-						case "For":
+						case "for":
 							token.Type = tFOR
-						case "To":
+						case "to":
 							token.Type = tTO
-						case "Step":
+						case "step":
 							token.Type = tSTEP
-						case "In":
+						case "in":
 							token.Type = tIN
-						case "Next":
+						case "next":
 							token.Type = tNEXT
-						case "While":
+						case "while":
 							token.Type = tWHILE
-						case "WEnd":
+						case "wend":
 							token.Type = tWEND
-						case "With":
+						case "with":
 							token.Type = tWITH
-						case "EndWith":
+						case "endwith":
 							token.Type = tWITHEND
-						case "Do":
+						case "do":
 							token.Type = tDO
-						case "Until":
+						case "until":
 							token.Type = tUNTIL
-						case "Switch":
+						case "switch":
 							token.Type = tSWITCH
-						case "EndSwitch":
+						case "endswitch":
 							token.Type = tSWITCHEND
-						case "Select":
+						case "select":
 							token.Type = tSELECT
-						case "EndSelect":
+						case "endselect":
 							token.Type = tSELECTEND
-						case "Case":
+						case "case":
 							token.Type = tCASE
-						case "ContinueCase":
+						case "continuecase":
 							token.Type = tCASEREPEAT
-						case "ContinueLoop":
+						case "continueloop":
 							token.Type = tLOOPREPEAT
-						case "ExitLoop":
+						case "exitloop":
 							token.Type = tLOOPEXIT
-						case "Dim":
+						case "dim":
 							token.Type = tSCOPE
 							token.Data = "Local"
-						case "ReDim":
+						case "redim":
 							token.Type = tREVAR
-						case "Local":
+						case "local":
 							token.Type = tSCOPE
-						case "Global":
+						case "global":
 							token.Type = tSCOPE
-						case "Const":
+						case "const":
 							token.Type = tSCOPE
-						case "Static":
+						case "static":
 							token.Type = tSCOPE
-						case "Enum":
+						case "enum":
 							token.Type = tENUM
-						case "Volatile":
+						case "volatile":
 							token.Type = tVOLATILE
 					}
 				}
@@ -243,10 +243,7 @@ func (l *Lexer) ReadRune() (rune, error) {
 	return r, nil
 }
 func isIdent(r rune) bool {
-	if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' {
-		return true
-	}
-	return false
+	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_'
 }
 func (l *Lexer) ReadIdent() string {
 	read := ""
@@ -266,10 +263,7 @@ func (l *Lexer) ReadIdent() string {
 	return read
 }
 func isFlag(r rune) bool {
-	if isIdent(r) || r == '-' {
-		return true
-	}
-	return false
+	return isIdent(r) || r == '-'
 }
 func (l *Lexer) ReadFlag() string {
 	read := ""

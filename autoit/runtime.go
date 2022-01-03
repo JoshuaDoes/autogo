@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 	"path/filepath"
 )
@@ -110,7 +111,7 @@ func (vm *AutoItVM) Step() error {
 		}
 		vm.Move(tRead)
 	case tFLAG:
-		switch token.Data {
+		switch strings.ToLower(token.Data) {
 		case "include":
 			includeFile := vm.ReadToken()
 			if includeFile.Type != tSTRING {
@@ -151,8 +152,8 @@ func (vm *AutoItVM) Step() error {
 				vm.Move(tRead)
 				vm.Log("FLAG %s = %s", token.Data, tValue.Data)
 			case tEOL:
-				switch token.Data {
-				case "Debug":
+				switch strings.ToLower(token.Data) {
+				case "debug":
 					vm.Logger = true
 				}
 
@@ -242,7 +243,8 @@ func (vm *AutoItVM) Move(pos int) {
 
 //GetVariable returns the specified variable or nil if it doesn't exist
 func (vm *AutoItVM) GetVariable(variableName string) (*Token) {
-	if variable, exists := vm.vars[variableName]; exists {
+	if variable, exists := vm.vars[strings.ToLower(variableName)]; exists {
+		vm.Log("GET $%s", variableName)
 		return variable
 	}
 	if vm.parentScope != nil {
@@ -253,5 +255,6 @@ func (vm *AutoItVM) GetVariable(variableName string) (*Token) {
 	return nil
 }
 func (vm *AutoItVM) SetVariable(variableName string, token *Token) {
-	vm.vars[variableName] = token
+	vm.Log("SET $%s = %v", variableName, *token)
+	vm.vars[strings.ToLower(variableName)] = token
 }

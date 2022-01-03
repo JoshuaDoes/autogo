@@ -2,37 +2,38 @@ package autoit
 
 import (
 	"os"
-	"strconv"
 	"runtime"
+	"strconv"
+	"strings"
 	"path/filepath"
 )
 
 func (vm *AutoItVM) GetMacro(macro string) (*Token, error) {
-	switch macro {
-	case "AutoItExe":
+	switch strings.ToLower(macro) {
+	case "autoitexe":
 		osExecutable, err := os.Executable()
 		return NewToken(tSTRING, osExecutable), err
-	case "AutoItPID":
+	case "autoitpid":
 		pid := os.Getpid()
 		return NewToken(tNUMBER, strconv.Itoa(pid)), nil
-	case "AutoItVersion":
+	case "autoitversion":
 		return NewToken(tSTRING, "3.3.15.4"), nil //Fake the targeted version
-	case "AutoItX64":
+	case "autoitx64":
 		if runtime.GOARCH == "amd64" {
 			return NewToken(tNUMBER, "1"), nil
 		}
 		return NewToken(tNUMBER, "0"), nil
-	case "CR":
+	case "cr":
 		return NewToken(tSTRING, "\r"), nil
-	case "CRLF":
+	case "crlf":
 		return NewToken(tSTRING, "\r\n"), nil
-	case "LF":
+	case "lf":
 		return NewToken(tSTRING, "\n"), nil
-	case "ScriptDir":
+	case "scriptdir":
 		return NewToken(tSTRING, filepath.Dir(vm.scriptPath)), nil
-	case "ScriptFullPath":
+	case "scriptfullpath":
 		return NewToken(tSTRING, vm.scriptPath), nil
-	case "ScriptName":
+	case "scriptname":
 		return NewToken(tSTRING, filepath.Base(vm.scriptPath)), nil
 	}
 	return nil, vm.Error("illegal macro: %s", macro)

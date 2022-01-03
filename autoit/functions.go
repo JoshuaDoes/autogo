@@ -12,7 +12,7 @@ import (
 
 var (
 	stdFunctions = map[string]*Function{
-		"ConsoleWrite": &Function{
+		"consolewrite": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "text"},
 			},
@@ -21,7 +21,7 @@ var (
 				return nil, nil
 			},
 		},
-		"ConsoleWriteError": &Function{
+		"consolewriteerror": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "error"},
 			},
@@ -30,7 +30,7 @@ var (
 				return nil, nil
 			},
 		},
-		"FileOpenDialog": &Function{
+		"fileopendialog": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "title"},
 				&FunctionArg{Name: "initDir"},
@@ -57,7 +57,7 @@ var (
 				return NewToken(tSTRING, file), nil
 			},
 		},
-		"FileSaveDialog": &Function{
+		"filesavedialog": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "title"},
 				&FunctionArg{Name: "initDir"},
@@ -84,7 +84,7 @@ var (
 				return NewToken(tSTRING, file), nil
 			},
 		},
-		"FileSelectFolder": &Function{
+		"fileselectfolder": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "dialogText"},
 				&FunctionArg{Name: "rootDir"},
@@ -103,7 +103,7 @@ var (
 				return NewToken(tSTRING, directory), nil
 			},
 		},
-		"FileRead": &Function{
+		"fileread": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "file"},
 				&FunctionArg{Name: "count", DefaultValue: NewToken(tNUMBER, "0")},
@@ -119,7 +119,7 @@ var (
 				return NewToken(tSTRING, string(fileData)), nil
 			},
 		},
-		"FileWrite": &Function{
+		"filewrite": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "file"},
 				&FunctionArg{Name: "data"},
@@ -132,7 +132,7 @@ var (
 				return NewToken(tNUMBER, "1"), nil
 			},
 		},
-		"InetRead": &Function{
+		"inetread": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "url"},
 				&FunctionArg{Name: "options", DefaultValue: NewToken(tNUMBER, "0")},
@@ -150,7 +150,7 @@ var (
 				return NewToken(tSTRING, string(data)), nil
 			},
 		},
-		"MsgBox": &Function{
+		"msgbox": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "flag"},
 				&FunctionArg{Name: "title"},
@@ -176,7 +176,7 @@ var (
 				return nil, nil
 			},
 		},
-		/*"ConsoleWriteLine": &Function{
+		/*"consolewriteline": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "sMsg"},
 			},
@@ -204,7 +204,7 @@ type FunctionArg struct {
 }
 
 func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
-	function, exists := stdFunctions[funcName]
+	function, exists := stdFunctions[strings.ToLower(funcName)]
 	if !exists {
 		return nil, vm.Error("undefined function %s", funcName)
 	}

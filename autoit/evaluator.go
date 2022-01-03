@@ -29,7 +29,10 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
 			e.move(tRead)
 			if err != nil {
-				return nil, e.error("error getting value to append: %v", err)
+				return nil, e.error("could not append value: %v", err)
+			}
+			if tValue == nil {
+				return nil, e.error("could not append nil value")
 			}
 
 			tDest := NewToken(tSTRING, tSource.Data)
@@ -128,15 +131,12 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			e.vm.Log("expecting value for: %v", *tEval)
 			tVariable := e.vm.GetVariable(tEval.Data)
 			if tVariable == nil {
-				e.vm.Log("err: %v", e.error("$%s: undeclared global variable", tEval.Data))
-				return nil, e.pos, e.error("$%s: undeclared global variable", tEval.Data)
+				return nil, e.pos, e.error("undeclared global variable $%s", tEval.Data)
 			}
 			tValue, err := e.mergeValue(tVariable)
 			if err != nil {
-				e.vm.Log("err: %v", err)
 				return nil, e.pos, err
 			}
-			//e.vm.Log("got value: %v", tValue)
 			return tValue, e.pos, nil
 		}
 
@@ -175,6 +175,9 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		}
 	case tMACRO:
 		tValue, err := e.vm.GetMacro(tEval.Data)
+		if err != nil {
+			return nil, e.pos, err
+		}
 		tValue, err = e.mergeValue(tValue)
 		return tValue, e.pos, err
 	case tCALL:

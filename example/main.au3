@@ -2,14 +2,9 @@
 Example script for interpreter testing
 Use at your own risk
 #ce
-;#Debug
-ConsoleWrite("Reading @ScriptFullPath ..." & @CRLF)
-$script = FileRead(@ScriptFullPath)
-ConsoleWrite(@ScriptName & ":" & @CRLF & $script & @CRLF)
-MsgBox(0, "AutoGo: " & @ScriptName, $script)
-
+;#debug
 $url = "http://www.autoitscript.com/autoit3/files/beta/update.dat"
-ConsoleWrite("Reading " & $url & " ..." & @CRLF)
-$data = InetRead($url)
-ConsoleWrite($data)
-MsgBox(0, "AutoIt: update.dat", $data)
+consoleWrite("Reading " & $URL & " ..." & @CrLf)
+$data = inetRead($url)
+Consolewrite($data)
+msgBox(0, "AutoIt: update.dat", $DATA)
