@@ -3,7 +3,6 @@ Example script for interpreter testing
 Use at your own risk
 #ce
 ;#Debug
-ConsoleWrite($asdf)
 ConsoleWrite("Reading @ScriptFullPath ..." & @CRLF)
 $script = FileRead(@ScriptFullPath)
 ConsoleWrite(@ScriptName & ":" & @CRLF & $script & @CRLF)

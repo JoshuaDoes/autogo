@@ -30,7 +30,7 @@ func main() {
 			}
 		}
 	} else {
-		err := runVM(os.Args[0], []byte(";INTERNAL SCRIPT\n#include \"main.au3\""))
+		err := runVM("main.au3", []byte(";INTERNAL SCRIPT\n#include \"main.au3\""))
 		if err != nil {
 			fmt.Println(err)
 		}

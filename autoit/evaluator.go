@@ -189,8 +189,10 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return tEval, e.pos, nil //Return a pointer to the call rather than evaluating its value
 		}
 		callParams := e.evalBlock(callTokens)
-		if callParams[len(callParams)-1].Type == tBLOCKEND {
-			callParams = callParams[:len(callParams)-1] //Strip leftover BLOCKEND from somewhere, TODO: find it
+		if len(callParams) > 1 {
+			if callParams[len(callParams)-1].Type == tBLOCKEND {
+				callParams = callParams[:len(callParams)-1] //Strip leftover BLOCKEND from somewhere, TODO: find it
+			}
 		}
 
 		tValue, err := e.vm.HandleFunc(tEval.Data, callParams)
