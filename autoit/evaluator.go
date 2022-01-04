@@ -159,7 +159,25 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		if expectValue {
 			return nil, e.pos, e.error("illegal variable declaration when expecting value")
 		}
-		return nil, e.pos, e.error("scope not implemented")
+
+		vm := e.vm
+		switch tEval.String() {
+		case "local":
+			vm = e.vm
+		case "global":
+			if e.vm.parentScope != nil {
+				vm = e.vm.parentScope
+			}
+		default:
+			return nil, e.pos, e.error("illegal scope: %s", tEval.String())
+		}
+
+		_, tRead, err := NewEvaluator(vm, e.tokens[e.pos:]).Eval(false)
+		e.move(tRead)
+		if err != nil {
+			return nil, e.pos, err
+		}
+		return nil, e.pos, nil
 	case tVARIABLE:
 		if expectValue {
 			e.vm.Log("expecting value for: %v", *tEval)
@@ -193,7 +211,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 					return nil, e.pos+tRead, e.error("error getting value for variable declaration: %v", err)
 				}
 
-				e.vm.SetVariable(tEval.String(), tValue)
+				e.vm.SetVariable(tEval.String(), tValue, true)
 				e.vm.Log("$%s = %v", tEval.String(), *tValue)
 				return nil, e.pos+tRead, nil
 			default:

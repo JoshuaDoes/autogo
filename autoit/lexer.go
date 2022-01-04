@@ -219,13 +219,15 @@ func (l *Lexer) ReadToken() (*Token, error) {
 						token.Type = tLOOPEXIT
 					case "dim":
 						token.Type = tSCOPE
-						token.Data = "Local"
+						token.Data = "local"
 					case "redim":
 						token.Type = tREVAR
 					case "local":
 						token.Type = tSCOPE
+						token.Data = "local"
 					case "global":
 						token.Type = tSCOPE
+						token.Data = "global"
 					case "const":
 						token.Type = tSCOPE
 					case "static":

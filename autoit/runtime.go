@@ -238,7 +238,11 @@ func (vm *AutoItVM) GetVariable(variableName string) (*Token) {
 	}
 	return nil
 }
-func (vm *AutoItVM) SetVariable(variableName string, token *Token) {
+func (vm *AutoItVM) SetVariable(variableName string, token *Token, global bool) {
 	vm.Log("SET $%s = %v", variableName, *token)
-	vm.vars[strings.ToLower(variableName)] = token
+	if global && vm.parentScope != nil {
+		vm.parentScope.SetVariable(variableName, token, global)
+	} else {
+		vm.vars[strings.ToLower(variableName)] = token
+	}
 }
