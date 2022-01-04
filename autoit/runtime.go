@@ -112,7 +112,7 @@ func (vm *AutoItVM) Step() error {
 			os.Exit(tExitCode.Int())
 		}
 		os.Exit(0)
-	case tSCOPE, tVARIABLE, tCALL, tFUNC:
+	case tSCOPE, tVARIABLE, tCALL, tFUNC, tFUNCRETURN:
 		vm.Move(-1)
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)
