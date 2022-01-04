@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sqweek/dialog"
+	//"github.com/sqweek/dialog"
 )
 
 var (
@@ -57,7 +57,7 @@ var (
 				return nil, nil
 			},
 		},
-		"fileopendialog": &Function{
+		/*"fileopendialog": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "title"},
 				&FunctionArg{Name: "initDir"},
@@ -129,7 +129,7 @@ var (
 				}
 				return NewToken(tSTRING, directory), nil
 			},
-		},
+		},*/
 		"fileread": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "file"},
@@ -177,7 +177,7 @@ var (
 				return NewToken(tBINARY, data), nil
 			},
 		},
-		"msgbox": &Function{
+		/*"msgbox": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "flag"},
 				&FunctionArg{Name: "title"},
@@ -202,7 +202,7 @@ var (
 				}
 				return nil, nil
 			},
-		},
+		},*/
 		"timerdiff": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "handle"},
