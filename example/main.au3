@@ -13,5 +13,4 @@ ConsoleWriteLn(ConsoleWriteLn())
 Func ConsoleWriteLn($sMsg = "")
 	Local $sNewMsg = $sMsg & @CRLF
 	ConsoleWrite($sNewMsg)
-	Return "Hello!"
 EndFunc

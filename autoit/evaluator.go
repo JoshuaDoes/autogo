@@ -373,6 +373,9 @@ func (e *Evaluator) evalBlock(block []*Token) []*Token {
 	split := make([]*Token, 0)
 	section := make([]*Token, 0)
 	for i := 0; i < len(block); i++ {
+		if block[i] == nil {
+			continue
+		}
 		e.vm.Log("------- %d EVALUATING %v", depth, *block[i])
 		switch block[i].Type {
 		case tBLOCK:
