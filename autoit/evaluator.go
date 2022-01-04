@@ -82,6 +82,26 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 			e.move(-1)
 			return nil, e.error("illegal operator following value to merge: %s", tOp.String())
 		}
+	case tAND:
+		tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+		e.move(tRead)
+		if err != nil {
+			return nil, e.error("error getting value to compare bool: %v", err)
+		}
+
+		tDest := NewToken(tBOOLEAN, tSource.Bool() && tValue.Bool())
+		e.vm.Log("compare bool: %v", *tDest)
+		return e.mergeValue(tDest)
+	case tOR:
+		tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+		e.move(tRead)
+		if err != nil {
+			return nil, e.error("error getting value to or bool: %v", err)
+		}
+
+		tDest := NewToken(tBOOLEAN, tSource.Bool() || tValue.Bool())
+		e.vm.Log("or bool: %v", *tDest)
+		return e.mergeValue(tDest)
 	case tEOL, tBLOCKEND:
 		e.move(-1)
 		return tSource, nil
@@ -120,6 +140,21 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return nil, e.pos, err
 		}
 		return tValue, e.pos, nil
+	case tNOT:
+		if !expectValue {
+			return nil, e.pos, e.error("unexpected not bool")
+		}
+
+		tBool := e.readToken()
+		if tBool == nil {
+			return nil, e.pos, e.error("expected bool for not")
+		}
+
+		tValue, err := e.mergeValue(tBool)
+		if err != nil {
+			return nil, e.pos, err
+		}
+		return NewToken(tBOOLEAN, !tValue.Bool()), e.pos, nil
 	case tSCOPE:
 		if expectValue {
 			return nil, e.pos, e.error("illegal variable declaration when expecting value")
