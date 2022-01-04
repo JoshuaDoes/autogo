@@ -7,7 +7,9 @@ Global $iValue = 4 * 9 + 0.1
 
 ConsoleWriteLn($sValue)
 ConsoleWriteLn($iValue)
+ConsoleWriteLn($sNewMsg)
 
-Func ConsoleWriteLn($msg = "")
-	ConsoleWrite($msg & @CRLF)
+Func ConsoleWriteLn($sMsg = "")
+	Local $sNewMsg = $sMsg & @CRLF
+	ConsoleWrite($sNewMsg)
 EndFunc

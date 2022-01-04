@@ -307,10 +307,10 @@ func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
 			vm.Log("func block: %d", i)
 			if i < len(args) {
 				vm.Log("set func value %s = %v", function.Args[i].Name, args[i])
-				vmFunc.SetVariable(function.Args[i].Name, args[i], false)
+				vmFunc.SetVariable(function.Args[i].Name, args[i])
 			} else {
 				vm.Log("set func value %s = %v", function.Args[i].Name, function.Args[i].DefaultValue)
-				vmFunc.SetVariable(function.Args[i].Name, function.Args[i].DefaultValue, false)
+				vmFunc.SetVariable(function.Args[i].Name, function.Args[i].DefaultValue)
 			}
 		}
 

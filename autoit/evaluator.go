@@ -223,7 +223,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 					return nil, e.pos+tRead, e.error("error getting value for variable declaration: %v", err)
 				}
 
-				e.vm.SetVariable(tEval.String(), tValue, true)
+				e.vm.SetVariable(tEval.String(), tValue)
 				e.vm.Log("$%s = %v", tEval.String(), *tValue)
 				return nil, e.pos+tRead, nil
 			default:
