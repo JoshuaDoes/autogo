@@ -110,39 +110,9 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		}
 		*/
 		return nil, e.pos, e.error("block not implemented")
-	case tSTRING:
+	case tSTRING, tNUMBER, tBOOLEAN, tBINARY:
 		if !expectValue {
-			return nil, e.pos, e.error("illegal string when not expecting value")
-		}
-
-		tValue, err := e.mergeValue(tEval)
-		if err != nil {
-			return nil, e.pos, err
-		}
-		return tValue, e.pos, nil
-	case tNUMBER:
-		if !expectValue {
-			return nil, e.pos, e.error("illegal number when not expecting value")
-		}
-
-		tValue, err := e.mergeValue(tEval)
-		if err != nil {
-			return nil, e.pos, err
-		}
-		return tValue, e.pos, nil
-	case tBOOLEAN:
-		if !expectValue {
-			return nil, e.pos, e.error("illegal boolean when not expecting value")
-		}
-
-		tValue, err := e.mergeValue(tEval)
-		if err != nil {
-			return nil, e.pos, err
-		}
-		return tValue, e.pos, nil
-	case tBINARY:
-		if !expectValue {
-			return nil, e.pos, e.error("illegal binary when not expecting value")
+			return nil, e.pos, e.error("unexpected value")
 		}
 
 		tValue, err := e.mergeValue(tEval)
