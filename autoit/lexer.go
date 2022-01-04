@@ -157,6 +157,12 @@ func (l *Lexer) ReadToken() (*Token, error) {
 						token.Type = tBOOLEAN
 					case "false":
 						token.Type = tBOOLEAN
+					case "and":
+						token.Type = tAND
+					case "or":
+						token.Type = tOR
+					case "not":
+						token.Type = tNOT
 					case "func":
 						token.Type = tFUNC
 					case "return":

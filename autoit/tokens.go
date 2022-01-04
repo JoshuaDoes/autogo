@@ -40,6 +40,26 @@ func NewToken(tType TokenType, data interface{}) *Token {
 func (t *Token) IsEmpty() bool {
 	return t.Data == ""
 }
+func (t *Token) Bool() bool {
+	if t.IsEmpty() {
+		return false
+	}
+	switch t.Type {
+	case tBOOLEAN:
+		if t.String() == "False" {
+			return false
+		}
+	case tNUMBER:
+		if t.Float64() <= 0 {
+			return false
+		}
+	case tBINARY:
+		if len(t.Bytes()) == 0 {
+			return false
+		}
+	}
+	return true //We return false if empty, so true otherwise
+}
 func (t *Token) String() string {
 	if t.IsEmpty() {
 		return ""
@@ -131,6 +151,9 @@ const (
 	tNULL TokenType = "NULL"
 	tDEFAULT TokenType = "DEFAULT"
 	tBOOLEAN TokenType = "BOOLEAN"
+	tAND TokenType = "AND"
+	tOR TokenType = "OR"
+	tNOT TokenType = "NOT"
 	tNUMBER TokenType = "NUMBER"
 	tBINARY TokenType = "BINARY"
 	tFUNC TokenType = "FUNC"
