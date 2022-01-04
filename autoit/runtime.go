@@ -46,6 +46,7 @@ func NewAutoItScriptVM(scriptPath string, script []byte, parentScope *AutoItVM) 
 		parentScope: parentScope,
 		funcs: make(map[string]*Function),
 		vars: make(map[string]*Token),
+		returnValue: NewToken(tNUMBER, 0),
 	}, nil
 }
 
@@ -61,6 +62,7 @@ func NewAutoItTokenVM(scriptPath string, tokens []*Token, parentScope *AutoItVM)
 		parentScope: parentScope,
 		funcs: make(map[string]*Function),
 		vars: make(map[string]*Token),
+		returnValue: NewToken(tNUMBER, 0),
 	}, nil
 }
 
