@@ -75,6 +75,7 @@ func (vm *AutoItVM) Step() error {
 	if token.Type == tEOL || token.Type == tCOMMENT {
 		return nil
 	}
+	vm.Log("step: %v", *token)
 
 	switch token.Type {
 	case tILLEGAL:
@@ -85,31 +86,12 @@ func (vm *AutoItVM) Step() error {
 			os.Exit(tExitCode.Int())
 		}
 		os.Exit(0)
-	case tSCOPE:
+	case tSCOPE, tVARIABLE, tCALL:
 		vm.Move(-1)
-		vm.Log("SCOPE %s", token.String())
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)
 		if err != nil {
-			return vm.Error("error defining scoped variable: %v", err)
-		}
-		vm.Move(tRead)
-	case tVARIABLE:
-		vm.Move(-1)
-		vm.Log("VARIABLE %s", token.String())
-		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
-		_, tRead, err := eval.Eval(false)
-		if err != nil {
-			return vm.Error("error setting variable: %v", err)
-		}
-		vm.Move(tRead)
-	case tCALL: //Must be a function call, we aren't storing a call pointer here
-		vm.Move(-1)
-		vm.Log("CALL %s", token.String())
-		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
-		_, tRead, err := eval.Eval(false)
-		if err != nil {
-			return vm.Error("error executing call: %v", err)
+			return err
 		}
 		vm.Move(tRead)
 	case tFLAG:
