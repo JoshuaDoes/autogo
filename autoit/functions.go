@@ -203,21 +203,30 @@ var (
 				return nil, nil
 			},
 		},*/
+		"sleep": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "delay"},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				time.Sleep(time.Millisecond * time.Duration(args["delay"].Int64()))
+				return nil, nil
+			},
+		},
 		"timerdiff": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "handle"},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				then := time.Unix(0, args["handle"].Int64() * int64(time.Millisecond))
 				now := time.Now()
+				then := time.Unix(0, args["handle"].Int64())
 				diff := now.Sub(then)
 				vm.Log("timerdiff: then(%s) now(%s) diff(%s)", then, now, diff)
-				return NewToken(tNUMBER, diff.Milliseconds()), nil
+				return NewToken(tNUMBER, float64(diff.Nanoseconds()) / 1000000), nil
 			},
 		},
 		"timerinit": &Function{
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				return NewToken(tNUMBER, time.Now().UnixNano() / int64(time.Millisecond)), nil
+				return NewToken(tNUMBER, time.Now().UnixNano()), nil
 			},
 		},
 		/*"consolewriteline": &Function{
