@@ -178,6 +178,18 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return nil, e.pos, err
 		}
 		return nil, e.pos, nil
+	case tFUNC:
+		if expectValue {
+			return nil, e.pos, e.error("illegal func declaration when expecting value")
+		}
+
+		for {
+			token := e.readToken()
+			if token == nil || token.Type == tFUNCEND {
+				break
+			}
+		}
+		return nil, e.pos, nil
 	case tVARIABLE:
 		if expectValue {
 			e.vm.Log("expecting value for: %v", *tEval)
@@ -252,6 +264,26 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 
 		tValue, err := e.vm.HandleFunc(tEval.String(), callParams)
 		return tValue, e.pos, err
+	case tFUNCRETURN:
+		tValue := e.readToken()
+		if tValue == nil {
+			return nil, e.pos, nil
+		}
+		if tValue.Type == tEOL {
+			e.move(-1)
+			return nil, e.pos, nil
+		}
+
+		tValue, err := e.mergeValue(tValue)
+		if err != nil {
+			return nil, e.pos, err
+		}
+
+		e.vm.returnValue = tValue
+		if expectValue {
+			return tValue, e.pos, nil
+		}
+		return nil, e.pos, nil
 	case tEOL:
 		if expectValue {
 			return nil, e.pos, e.error("illegal end of line when expecting value")
@@ -275,7 +307,7 @@ func (e *Evaluator) readToken() *Token {
 }
 func (e *Evaluator) readBlock() ([]*Token, error) {
 	block := make([]*Token, 0)
-	depth := -1
+	depth := 0
 
 	for {
 		token := e.readToken()
@@ -287,9 +319,6 @@ func (e *Evaluator) readBlock() ([]*Token, error) {
 		switch token.Type {
 		case tBLOCK:
 			depth++
-			if depth == 0 {
-				depth = 1
-			}
 			if depth > 1 {
 				block = append(block, token)
 			}

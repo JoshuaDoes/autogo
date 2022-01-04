@@ -246,9 +246,12 @@ type FunctionArg struct {
 }
 
 func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
-	function, exists := stdFunctions[strings.ToLower(funcName)]
+	function, exists := vm.funcs[strings.ToLower(funcName)]
 	if !exists {
-		return nil, vm.Error("undefined function %s", funcName)
+		function, exists = stdFunctions[strings.ToLower(funcName)]
+		if !exists {
+			return nil, vm.Error("undefined function %s", funcName)
+		}
 	}
 
 	if len(args) > len(function.Args) {
@@ -276,6 +279,47 @@ func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
 
 	if function.Func != nil {
 		return function.Func(vm, funcArgs)
+	}
+	if function.Block != nil {
+		/*vmFunc, err := NewAutoItTokenVM(vm.scriptPath, function.Block, vm.parentScope)
+		if err != nil {
+			return nil, err
+		}
+		vmFunc.Logger = vm.Logger
+
+		vmFunc.funcs = vm.funcs
+		vmFunc.vars = vm.vars*/
+
+		vmFuncPtr := *vm
+		vmFunc := &vmFuncPtr
+		vmFunc.running = false
+		vmFunc.suspended = false
+		vmFunc.pos = 0
+		vmFunc.tokens = function.Block
+		vmFunc.parentScope = vm
+
+		preprocess := vmFunc.Preprocess()
+		if preprocess != nil {
+			return nil, preprocess
+		}
+
+		for i := 0; i < len(function.Args); i++ {
+			vm.Log("func block: %d", i)
+			if i < len(args) {
+				vm.Log("set func value %s = %v", function.Args[i].Name, args[i])
+				vmFunc.SetVariable(function.Args[i].Name, args[i], false)
+			} else {
+				vm.Log("set func value %s = %v", function.Args[i].Name, function.Args[i].DefaultValue)
+				vmFunc.SetVariable(function.Args[i].Name, function.Args[i].DefaultValue, false)
+			}
+		}
+
+		err := vmFunc.Run()
+		if err != nil {
+			return nil, vm.Error("error running function block: %v", err)
+		}
+
+		return vmFunc.returnValue, nil
 	}
 	return nil, vm.Error("no handler for function %s", funcName)
 }

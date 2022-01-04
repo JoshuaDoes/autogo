@@ -18,7 +18,7 @@ func NewToken(tType TokenType, data interface{}) *Token {
 	case int, int32, int64:
 		return &Token{Type: tNUMBER, Data: fmt.Sprintf("%d", data)}
 	case float32, float64:
-		return &Token{Type: tNUMBER, Data: fmt.Sprintf("%f", data)}
+		return &Token{Type: tNUMBER, Data: strconv.FormatFloat(data.(float64), 'f', -1, 64)}
 	case string:
 		if data.(string) != "" {
 			return &Token{Type: tSTRING, Data: data.(string)}

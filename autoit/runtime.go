@@ -16,16 +16,18 @@ type AutoItVM struct {
 	//Script trackers
 	scriptPath string
 	tokens []*Token
+	funcs map[string]*Function
 	pos int
 
 	//Runtime and memory
 	running bool
 	suspended bool
+	returnValue *Token
 	vars map[string]*Token
 	parentScope *AutoItVM
 }
 
-func NewAutoItVM(scriptPath string, script []byte, parentScope *AutoItVM) (*AutoItVM, error) {
+func NewAutoItScriptVM(scriptPath string, script []byte, parentScope *AutoItVM) (*AutoItVM, error) {
 	scriptPath, err := filepath.Abs(scriptPath)
 	if err != nil {
 		return nil, err
@@ -41,6 +43,23 @@ func NewAutoItVM(scriptPath string, script []byte, parentScope *AutoItVM) (*Auto
 		scriptPath: scriptPath,
 		tokens: tokens,
 		parentScope: parentScope,
+		funcs: make(map[string]*Function),
+		vars: make(map[string]*Token),
+	}, nil
+}
+
+func NewAutoItTokenVM(scriptPath string, tokens []*Token, parentScope *AutoItVM) (*AutoItVM, error) {
+	scriptPath, err := filepath.Abs(scriptPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AutoItVM{
+		scriptPath: scriptPath,
+		tokens: tokens,
+		parentScope: parentScope,
+		funcs: make(map[string]*Function),
+		vars: make(map[string]*Token),
 	}, nil
 }
 
@@ -48,6 +67,12 @@ func (vm *AutoItVM) Run() error {
 	if vm.Running() {
 		return nil
 	}
+
+	preprocess := vm.Preprocess()
+	if preprocess != nil {
+		return preprocess
+	}
+
 	vm.running = true
 	vm.vars = make(map[string]*Token)
 	for vm.Running() {
@@ -55,14 +80,14 @@ func (vm *AutoItVM) Run() error {
 			time.Sleep(time.Millisecond * 1)
 			continue
 		}
-		err := vm.Step()
-		if err == io.EOF {
+		step := vm.Step()
+		if step == io.EOF {
 			vm.Stop()
 			return nil
 		}
-		if err != nil {
+		if step != nil {
 			vm.Stop()
-			return err
+			return step
 		}
 	}
 	return nil
@@ -86,7 +111,7 @@ func (vm *AutoItVM) Step() error {
 			os.Exit(tExitCode.Int())
 		}
 		os.Exit(0)
-	case tSCOPE, tVARIABLE, tCALL:
+	case tSCOPE, tVARIABLE, tCALL, tFUNC:
 		vm.Move(-1)
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)
@@ -205,7 +230,6 @@ func (vm *AutoItVM) Stop() {
 	vm.running = false
 	vm.suspended = false
 	vm.pos = 0
-	vm.vars = make(map[string]*Token)
 }
 
 func (vm *AutoItVM) Tokens() []*Token {
@@ -232,7 +256,7 @@ func (vm *AutoItVM) GetVariable(variableName string) (*Token) {
 		return variable
 	}
 	if vm.parentScope != nil {
-		if variable := vm.parentScope.GetVariable(variableName); variable != nil {
+		if variable := vm.parentScope.GetVariable(strings.ToLower(variableName)); variable != nil {
 			return variable
 		}
 	}
@@ -241,7 +265,7 @@ func (vm *AutoItVM) GetVariable(variableName string) (*Token) {
 func (vm *AutoItVM) SetVariable(variableName string, token *Token, global bool) {
 	vm.Log("SET $%s = %v", variableName, *token)
 	if global && vm.parentScope != nil {
-		vm.parentScope.SetVariable(variableName, token, global)
+		vm.parentScope.SetVariable(strings.ToLower(variableName), token, global)
 	} else {
 		vm.vars[strings.ToLower(variableName)] = token
 	}

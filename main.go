@@ -8,7 +8,7 @@ import (
 )
 
 func runVM(scriptPath string, script []byte) error {
-	vm, err := autoit.NewAutoItVM(scriptPath, script, nil)
+	vm, err := autoit.NewAutoItScriptVM(scriptPath, script, nil)
 	if err != nil {
 		return err
 	}
