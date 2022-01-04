@@ -13,12 +13,36 @@ import (
 
 var (
 	stdFunctions = map[string]*Function{
+		"string": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "expression"},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				return NewToken(tSTRING, args["expression"].String()), nil
+			},
+		},
+		"number": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "expression"},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				return NewToken(tNUMBER, args["expression"].Float64()), nil
+			},
+		},
+		"binary": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "expression"},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				return NewToken(tBINARY, args["expression"].Bytes()), nil
+			},
+		},
 		"consolewrite": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "text"},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				fmt.Fprint(os.Stdout, args["text"].Data)
+				fmt.Fprint(os.Stdout, args["text"].String())
 				return nil, nil
 			},
 		},
@@ -27,7 +51,7 @@ var (
 				&FunctionArg{Name: "error"},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				fmt.Fprint(os.Stderr, args["error"].Data)
+				fmt.Fprint(os.Stderr, args["error"].String())
 				return nil, nil
 			},
 		},
@@ -41,14 +65,14 @@ var (
 				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, "0")},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				filterSplit := strings.Split(args["filter"].Data, "(")
+				filterSplit := strings.Split(args["filter"].String(), "(")
 				if len(filterSplit) < 2 {
-					return nil, vm.Error("invalid file filter `%s`: %v", args["filter"].Data, filterSplit)
+					return nil, vm.Error("invalid file filter `%s`: %v", args["filter"].String(), filterSplit)
 				}
 				filterSplit2 := strings.Split(filterSplit[1], ")")
 				filters := strings.Split(filterSplit2[0], "|")
 
-				file, err := dialog.File().Title(args["title"].Data).SetStartDir(args["initDir"].Data).Filter(args["filter"].Data, filters...).Load()
+				file, err := dialog.File().Title(args["title"].String()).SetStartDir(args["initDir"].String()).Filter(args["filter"].String(), filters...).Load()
 				if err != nil {
 					if err == dialog.ErrCancelled {
 						return NewToken(tSTRING, ""), nil
@@ -68,14 +92,14 @@ var (
 				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, "0")},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				filterSplit := strings.Split(args["filter"].Data, "(")
+				filterSplit := strings.Split(args["filter"].String(), "(")
 				if len(filterSplit) < 2 {
-					return nil, vm.Error("invalid file filter `%s`: %v", args["filter"].Data, filterSplit)
+					return nil, vm.Error("invalid file filter `%s`: %v", args["filter"].String(), filterSplit)
 				}
 				filterSplit2 := strings.Split(filterSplit[1], ")")
 				filters := strings.Split(filterSplit2[0], "|")
 
-				file, err := dialog.File().Title(args["title"].Data).SetStartDir(args["initDir"].Data).Filter(args["filter"].Data, filters...).Save()
+				file, err := dialog.File().Title(args["title"].String()).SetStartDir(args["initDir"].String()).Filter(args["filter"].String(), filters...).Save()
 				if err != nil {
 					if err == dialog.ErrCancelled {
 						return NewToken(tSTRING, ""), nil
@@ -94,7 +118,7 @@ var (
 				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, "0")},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				directory, err := dialog.Directory().Title(args["dialogText"].Data).SetStartDir(args["initialDir"].Data).Browse()
+				directory, err := dialog.Directory().Title(args["dialogText"].String()).SetStartDir(args["initialDir"].String()).Browse()
 				if err != nil {
 					if err == dialog.ErrCancelled {
 						return NewToken(tSTRING, ""), nil
@@ -110,14 +134,14 @@ var (
 				&FunctionArg{Name: "count", DefaultValue: NewToken(tNUMBER, "0")},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				fileData, err := os.ReadFile(args["file"].Data)
+				fileData, err := os.ReadFile(args["file"].String())
 				if err != nil {
 					return nil, err
 				}
 				if args["count"].Int() > 0 {
-					return NewToken(tSTRING, string(fileData[:args["count"].Int()])), nil
+					return NewToken(tBINARY, fileData[:args["count"].Int()]), nil
 				}
-				return NewToken(tSTRING, string(fileData)), nil
+				return NewToken(tBINARY, fileData), nil
 			},
 		},
 		"filewrite": &Function{
@@ -126,7 +150,7 @@ var (
 				&FunctionArg{Name: "data"},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				err := os.WriteFile(args["file"].Data, args["data"].Bytes(), 0666)
+				err := os.WriteFile(args["file"].String(), args["data"].Bytes(), 0666)
 				if err != nil {
 					return NewToken(tNUMBER, "0"), err
 				}
@@ -139,7 +163,7 @@ var (
 				&FunctionArg{Name: "options", DefaultValue: NewToken(tNUMBER, "0")},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				resp, err := http.Get(args["url"].Data)
+				resp, err := http.Get(args["url"].String())
 				if err != nil {
 					return nil, err
 				}
@@ -148,7 +172,7 @@ var (
 				if err != nil {
 					return nil, err
 				}
-				return NewToken(tSTRING, string(data)), nil
+				return NewToken(tBINARY, data), nil
 			},
 		},
 		"msgbox": &Function{
@@ -162,16 +186,16 @@ var (
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 				switch args["flag"].Int() {
 				case 0: //$MB_OK
-					dialog.Message("%s", args["text"].Data).Title(args["title"].Data).Info()
+					dialog.Message("%s", args["text"].String()).Title(args["title"].String()).Info()
 					return NewToken(tNUMBER, "1"), nil //$IDOK
 				case 4: //$MB_YESNO
-					yesno := dialog.Message("%s", args["text"].Data).Title(args["title"].Data).YesNo()
+					yesno := dialog.Message("%s", args["text"].String()).Title(args["title"].String()).YesNo()
 					if yesno {
 						return NewToken(tNUMBER, "6"), nil //$IDYES
 					}
 					return NewToken(tNUMBER, "7"), nil //$IDNO
 				case 16: //$MB_ICONERROR
-					dialog.Message("%s", args["text"].Data).Title(args["title"].Data).Error()
+					dialog.Message("%s", args["text"].String()).Title(args["title"].String()).Error()
 					return NewToken(tNUMBER, "1"), nil //$IDOK
 				}
 				return nil, nil

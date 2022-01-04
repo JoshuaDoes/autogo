@@ -1,6 +1,7 @@
 package autoit
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
@@ -15,23 +16,39 @@ type Token struct {
 func NewToken(tType TokenType, data interface{}) *Token {
 	switch data.(type) {
 	case int, int32, int64:
-		return &Token{Type: tType, Data: fmt.Sprintf("%d", data)}
+		return &Token{Type: tNUMBER, Data: fmt.Sprintf("%d", data)}
 	case float32, float64:
-		return &Token{Type: tType, Data: fmt.Sprintf("%d", data)}
+		return &Token{Type: tNUMBER, Data: fmt.Sprintf("%f", data)}
 	case string:
-		return &Token{Type: tType, Data: data.(string)}
+		if data.(string) != "" {
+			return &Token{Type: tSTRING, Data: data.(string)}
+		}
 	case bool:
 		boolTF := data.(bool)
 		if boolTF {
-			return &Token{Type: tType, Data: "True"}
+			return &Token{Type: tBOOLEAN, Data: "True"}
 		}
-		return &Token{Type: tType, Data: "False"}
+		return &Token{Type: tBOOLEAN, Data: "False"}
+	case byte:
+		return &Token{Type: tBINARY, Data: "0x" + fmt.Sprintf("%x", data)}
+	case []byte:
+		return &Token{Type: tBINARY, Data: hex.EncodeToString(data.([]byte))}
 	}
 	return &Token{Type: tType, Data: fmt.Sprintf("%v", data)}
 }
 
 func (t *Token) IsEmpty() bool {
 	return t.Data == ""
+}
+func (t *Token) String() string {
+	if t.IsEmpty() {
+		return ""
+	}
+	switch t.Type {
+	case tBINARY:
+		return string(t.Bytes())
+	}
+	return t.Data
 }
 func (t *Token) Int() int {
 	if t.IsEmpty() {
@@ -82,6 +99,14 @@ func (t *Token) Bytes() []byte {
 	if t.IsEmpty() {
 		return make([]byte, 0)
 	}
+	switch t.Type {
+	case tBINARY:
+		hexadecimal, err := hex.DecodeString(t.Data)
+		if err != nil {
+			return nil
+		}
+		return hexadecimal
+	}
 	return []byte(t.Data)
 }
 
@@ -107,6 +132,7 @@ const (
 	tDEFAULT TokenType = "DEFAULT"
 	tBOOLEAN TokenType = "BOOLEAN"
 	tNUMBER TokenType = "NUMBER"
+	tBINARY TokenType = "BINARY"
 	tFUNC TokenType = "FUNC"
 	tFUNCRETURN TokenType = "FUNCRETURN"
 	tFUNCEND TokenType = "FUNCEND"

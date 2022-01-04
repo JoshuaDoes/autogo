@@ -23,7 +23,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 
 	switch tOp.Type {
 	case tOP:
-		switch tOp.Data {
+		switch tOp.String() {
 		case "&":
 			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
 			e.move(tRead)
@@ -34,8 +34,8 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 				return nil, e.error("could not append nil value")
 			}
 
-			tDest := NewToken(tSTRING, tSource.Data)
-			tDest.Data += tValue.Data
+			tDest := NewToken(tSTRING, tSource.String())
+			tDest.Data += tValue.String()
 			e.vm.Log("append: %v", *tDest)
 			return e.mergeValue(tDest)
 		case "+":
@@ -80,7 +80,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 			return e.mergeValue(tDest)
 		default:
 			e.move(-1)
-			return nil, e.error("illegal operator following value to merge: %s", tOp.Data)
+			return nil, e.error("illegal operator following value to merge: %s", tOp.String())
 		}
 	case tEOL, tBLOCKEND:
 		e.move(-1)
@@ -130,6 +130,26 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return nil, e.pos, err
 		}
 		return tValue, e.pos, nil
+	case tBOOLEAN:
+		if !expectValue {
+			return nil, e.pos, e.error("illegal boolean when not expecting value")
+		}
+
+		tValue, err := e.mergeValue(tEval)
+		if err != nil {
+			return nil, e.pos, err
+		}
+		return tValue, e.pos, nil
+	case tBINARY:
+		if !expectValue {
+			return nil, e.pos, e.error("illegal binary when not expecting value")
+		}
+
+		tValue, err := e.mergeValue(tEval)
+		if err != nil {
+			return nil, e.pos, err
+		}
+		return tValue, e.pos, nil
 	case tSCOPE:
 		if expectValue {
 			return nil, e.pos, e.error("illegal variable declaration when expecting value")
@@ -138,9 +158,9 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 	case tVARIABLE:
 		if expectValue {
 			e.vm.Log("expecting value for: %v", *tEval)
-			tVariable := e.vm.GetVariable(tEval.Data)
+			tVariable := e.vm.GetVariable(tEval.String())
 			if tVariable == nil {
-				return nil, e.pos, e.error("undeclared global variable $%s", tEval.Data)
+				return nil, e.pos, e.error("undeclared global variable $%s", tEval.String())
 			}
 			tValue, err := e.mergeValue(tVariable)
 			if err != nil {
@@ -152,12 +172,12 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		tOp := e.readToken()
 		if tOp == nil {
 			e.move(-1)
-			return e.vm.GetVariable(tEval.Data), e.pos, nil
+			return e.vm.GetVariable(tEval.String()), e.pos, nil
 		}
 
 		switch tOp.Type {
 		case tOP:
-			switch tOp.Data {
+			switch tOp.String() {
 			case "=":
 				if expectValue {
 					return nil, e.pos, e.error("illegal variable declaration when expecting value")
@@ -168,22 +188,22 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 					return nil, e.pos+tRead, e.error("error getting value for variable declaration: %v", err)
 				}
 
-				e.vm.SetVariable(tEval.Data, tValue)
-				e.vm.Log("$%s = %v", tEval.Data, *tValue)
+				e.vm.SetVariable(tEval.String(), tValue)
+				e.vm.Log("$%s = %v", tEval.String(), *tValue)
 				return nil, e.pos+tRead, nil
 			default:
 				e.move(-1)
-				return nil, e.pos, e.error("illegal operator following variable: %s", tOp.Data)
+				return nil, e.pos, e.error("illegal operator following variable: %s", tOp.String())
 			}
 		case tEOL, tBLOCKEND:
 			e.move(-1)
-			return e.vm.GetVariable(tEval.Data), e.pos, nil //Return the evaluated value
+			return e.vm.GetVariable(tEval.String()), e.pos, nil //Return the evaluated value
 		default:
 			e.move(-1)
 			return nil, e.pos, e.error("illegal token following variable: %v", *tOp)
 		}
 	case tMACRO:
-		tValue, err := e.vm.GetMacro(tEval.Data)
+		tValue, err := e.vm.GetMacro(tEval.String())
 		if err != nil {
 			return nil, e.pos, err
 		}
@@ -207,7 +227,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			}
 		}
 
-		tValue, err := e.vm.HandleFunc(tEval.Data, callParams)
+		tValue, err := e.vm.HandleFunc(tEval.String(), callParams)
 		return tValue, e.pos, err
 	case tEOL:
 		if expectValue {

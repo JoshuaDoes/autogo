@@ -87,7 +87,7 @@ func (vm *AutoItVM) Step() error {
 		os.Exit(0)
 	case tSCOPE:
 		vm.Move(-1)
-		vm.Log("SCOPE %s", token.Data)
+		vm.Log("SCOPE %s", token.String())
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)
 		if err != nil {
@@ -96,7 +96,7 @@ func (vm *AutoItVM) Step() error {
 		vm.Move(tRead)
 	case tVARIABLE:
 		vm.Move(-1)
-		vm.Log("VARIABLE %s", token.Data)
+		vm.Log("VARIABLE %s", token.String())
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)
 		if err != nil {
@@ -105,7 +105,7 @@ func (vm *AutoItVM) Step() error {
 		vm.Move(tRead)
 	case tCALL: //Must be a function call, we aren't storing a call pointer here
 		vm.Move(-1)
-		vm.Log("CALL %s", token.Data)
+		vm.Log("CALL %s", token.String())
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)
 		if err != nil {
@@ -113,15 +113,15 @@ func (vm *AutoItVM) Step() error {
 		}
 		vm.Move(tRead)
 	case tFLAG:
-		switch strings.ToLower(token.Data) {
+		switch strings.ToLower(token.String()) {
 		case "include":
 			includeFile := vm.ReadToken()
 			if includeFile.Type != tSTRING {
 				return vm.Error("expected string containing path to include")
 			}
-			vm.Log("INCLUDE %s", includeFile.Data)
+			vm.Log("INCLUDE %s", includeFile.String())
 
-			includeLexer, err := NewLexerFromFile(includeFile.Data)
+			includeLexer, err := NewLexerFromFile(includeFile.String())
 			if err != nil {
 				return vm.Error("%v", err)
 			}
@@ -141,8 +141,8 @@ func (vm *AutoItVM) Step() error {
 			tOp := vm.ReadToken()
 			switch tOp.Type {
 			case tOP:
-				if tOp.Data != "=" {
-					return vm.Error("unexpected flag operator: %s", tOp.Data)
+				if tOp.String() != "=" {
+					return vm.Error("unexpected flag operator: %s", tOp.String())
 				}
 
 				eval := NewEvaluator(vm, vm.tokens[vm.pos:])
@@ -152,15 +152,15 @@ func (vm *AutoItVM) Step() error {
 				}
 
 				vm.Move(tRead)
-				vm.Log("FLAG %s = %s", token.Data, tValue.Data)
+				vm.Log("FLAG %s = %s", token.String(), tValue.String())
 			case tEOL:
-				switch strings.ToLower(token.Data) {
+				switch strings.ToLower(token.String()) {
 				case "debug":
 					vm.Logger = true
 				}
 
 				vm.Move(-1)
-				vm.Log("FLAG %s", token.Data)
+				vm.Log("FLAG %s", token.String())
 			default:
 				return vm.Error("unexpected token following flag: %v", tOp)
 			}
