@@ -25,6 +25,7 @@ type AutoItVM struct {
 	returnValue *Token
 	vars map[string]*Token
 	parentScope *AutoItVM
+	stdout, stderr string
 }
 
 func NewAutoItScriptVM(scriptPath string, script []byte, parentScope *AutoItVM) (*AutoItVM, error) {
@@ -230,6 +231,13 @@ func (vm *AutoItVM) Stop() {
 	vm.running = false
 	vm.suspended = false
 	vm.pos = 0
+}
+
+func (vm *AutoItVM) Stdout() string {
+	return vm.stdout
+}
+func (vm *AutoItVM) Stderr() string {
+	return vm.stderr
 }
 
 func (vm *AutoItVM) Tokens() []*Token {

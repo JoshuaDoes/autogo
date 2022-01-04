@@ -43,6 +43,7 @@ var (
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 				fmt.Fprint(os.Stdout, args["text"].String())
+				vm.stdout += args["text"].String()
 				return nil, nil
 			},
 		},
@@ -52,6 +53,7 @@ var (
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 				fmt.Fprint(os.Stderr, args["error"].String())
+				vm.stderr += args["error"].String()
 				return nil, nil
 			},
 		},
