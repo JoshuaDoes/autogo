@@ -1,6 +1,7 @@
 package autoit
 
 import (
+	"os"
 	"strings"
 )
 
@@ -13,6 +14,34 @@ func (vm *AutoItVM) Preprocess() error {
 			break
 		}
 		switch token.Type {
+		case tFLAG:
+			if !startLine {
+				return vm.Error("preprocess: unexpected flag")
+			}
+			startLine = false
+
+			switch strings.ToLower(token.String()) {
+			case "include":
+				includeFile := vm.ReadToken()
+				if includeFile.Type != tSTRING {
+					return vm.Error("preprocess: expected string containing path to include")
+				}
+				includeScript, err := os.ReadFile(includeFile.String())
+				if err != nil {
+					return err
+				}
+				includeVM, err := NewAutoItScriptVM(includeFile.String(), includeScript, vm)
+				if err != nil {
+					return err
+				}
+				err = includeVM.Preprocess()
+				if err != nil {
+					return err
+				}
+				for functionName, function := range includeVM.funcs {
+					vm.funcs[functionName] = function
+				}
+			}
 		case tFUNC:
 			if !startLine {
 				return vm.Error("preprocess: unexpected func")
@@ -24,8 +53,11 @@ func (vm *AutoItVM) Preprocess() error {
 				return err
 			}
 
+			if _, exists := vm.funcs[functionName]; exists {
+				return vm.Error("preprocess: func %s already defined", functionName)
+			}
 			vm.funcs[functionName] = function
-		case tEOL:
+		case tEOL, tCOMMENT:
 			startLine = true
 		default:
 			startLine = false
