@@ -14,3 +14,6 @@ Func ConsoleWriteLn($sMsg = "")
 	Local $sNewMsg = $sMsg & @CRLF
 	ConsoleWrite($sNewMsg)
 EndFunc
+
+If $sValue Then
+EndIf

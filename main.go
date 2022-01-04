@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/JoshuaDoes/autogo/autoit"
 )
@@ -18,7 +19,16 @@ func runVM(scriptPath string, script []byte) error {
 
 func main() {
 	if len(os.Args) > 1 {
-		for _, scriptFile := range os.Args[1:] {
+		scripts := make([]string, 0)
+		for _, arg := range os.Args[1:] {
+			switch strings.ToLower(arg) {
+			case "/errorstdout":
+				os.Stderr = os.Stdout
+			default:
+				scripts = append(scripts, arg)
+			}
+		}
+		for _, scriptFile := range scripts {
 			script, err := os.ReadFile(scriptFile)
 			if err != nil {
 				panic(err)
