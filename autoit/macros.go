@@ -15,14 +15,14 @@ func (vm *AutoItVM) GetMacro(macro string) (*Token, error) {
 		return NewToken(tSTRING, osExecutable), err
 	case "autoitpid":
 		pid := os.Getpid()
-		return NewToken(tNUMBER, strconv.Itoa(pid)), nil
+		return NewToken(tNUMBER, pid), nil
 	case "autoitversion":
 		return NewToken(tSTRING, "3.3.15.4"), nil //Fake the targeted version
 	case "autoitx64":
-		if runtime.GOARCH == "amd64" {
-			return NewToken(tNUMBER, "1"), nil
+		if strings.Contains(runtime.GOARCH, "64") {
+			return NewToken(tNUMBER, 1)
 		}
-		return NewToken(tNUMBER, "0"), nil
+		return NewToken(tNUMBER, 0), nil
 	case "cr":
 		return NewToken(tSTRING, "\r"), nil
 	case "crlf":

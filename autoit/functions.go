@@ -13,22 +13,6 @@ import (
 
 var (
 	stdFunctions = map[string]*Function{
-		"string": &Function{
-			Args: []*FunctionArg{
-				&FunctionArg{Name: "expression"},
-			},
-			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				return NewToken(tSTRING, args["expression"].String()), nil
-			},
-		},
-		"number": &Function{
-			Args: []*FunctionArg{
-				&FunctionArg{Name: "expression"},
-			},
-			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				return NewToken(tNUMBER, args["expression"].Float64()), nil
-			},
-		},
 		"binary": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "expression"},
@@ -203,6 +187,14 @@ var (
 				return nil, nil
 			},
 		},*/
+		"number": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "expression"},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				return NewToken(tNUMBER, args["expression"].Float64()), nil
+			},
+		},
 		"sleep": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "delay"},
@@ -210,6 +202,14 @@ var (
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 				time.Sleep(time.Millisecond * time.Duration(args["delay"].Int64()))
 				return nil, nil
+			},
+		},
+		"string": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "expression"},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				return NewToken(tSTRING, args["expression"].String()), nil
 			},
 		},
 		"timerdiff": &Function{
