@@ -313,8 +313,8 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 
 		e.vm.Log("bool value: %v", tValue)
 		if tValue.Bool() {
-			if e.vm.ranIfStatement && tEval.Type == tELSEIF {
-				return nil, e.pos, e.error("already ran if statement")
+			if e.vm.ranIfStatement {
+				return nil, e.pos, nil
 			}
 			e.vm.ranIfStatement = true
 
@@ -356,9 +356,6 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		}
 		return nil, e.pos, nil
 	case tIFEND:
-		if !e.vm.ranIfStatement {
-			return nil, e.pos, e.error("unexpected endif")
-		}
 		e.vm.ranIfStatement = false
 		return nil, e.pos, nil
 	case tSCOPE:
@@ -463,7 +460,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 
 		tValue, err := e.vm.HandleFunc(tEval.String(), callParams)
 		return tValue, e.pos, err
-	case tFUNCRETURN:
+	/*case tFUNCRETURN:
 		tValue := e.readToken()
 		if tValue == nil {
 			return nil, e.pos, nil
@@ -482,7 +479,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		if expectValue {
 			return tValue, e.pos, nil
 		}
-		return nil, e.pos, nil
+		return nil, e.pos, nil*/
 	case tEOL:
 		if expectValue {
 			return nil, e.pos, e.error("illegal end of line when expecting value")

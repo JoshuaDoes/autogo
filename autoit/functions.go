@@ -195,6 +195,30 @@ var (
 				return NewToken(tNUMBER, args["expression"].Float64()), nil
 			},
 		},
+		"seterror": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "code"},
+				&FunctionArg{Name: "extended", DefaultValue: NewToken(tNUMBER, 0)},
+				&FunctionArg{Name: "returnValue", DefaultValue: NewToken(tNUMBER, 0)},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				vm.error = args["code"].Int()
+				vm.extended = args["extended"].Int()
+				vm.returnValue = args["returnValue"]
+				return vm.returnValue, nil
+			},
+		},
+		"setextended": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "extended"},
+				&FunctionArg{Name: "returnValue", DefaultValue: NewToken(tNUMBER, 0)},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				vm.extended = args["extended"].Int()
+				vm.returnValue = args["returnValue"]
+				return vm.returnValue, nil
+			},
+		},
 		"sleep": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "delay"},
@@ -265,6 +289,9 @@ func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
 		}
 	}
 
+	if args == nil {
+		args = make([]*Token, 0)
+	}
 	if len(args) > len(function.Args) {
 		for _, arg := range args {
 			vm.Log("arg: %v", arg)
@@ -296,6 +323,7 @@ func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
 		if preprocess != nil {
 			return nil, preprocess
 		}
+		vmFunc.numParams = len(args)
 
 		for i := 0; i < len(function.Args); i++ {
 			vm.Log("func block: %d", i)
@@ -313,6 +341,9 @@ func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
 			return nil, vm.Error("error running function block: %v", err)
 		}
 
+		vm.error = vmFunc.error
+		vm.extended = vmFunc.extended
+		vm.returnValue = vmFunc.returnValue
 		return vmFunc.returnValue, nil
 	}
 	return nil, vm.Error("no handler for function %s", funcName)

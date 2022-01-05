@@ -23,6 +23,11 @@ type AutoItVM struct {
 	running bool
 	suspended bool
 	returnValue *Token
+	error int
+	exitCode int
+	exitMethod string
+	extended int
+	numParams int
 	vars map[string]*Token
 	parentScope *AutoItVM
 	stdout, stderr string
@@ -73,6 +78,10 @@ func (vm *AutoItVM) ExtendVM(tokens []*Token) (*AutoItVM, error) {
 	vmNew.running = false
 	vmNew.suspended = false
 	vmNew.pos = 0
+	vmNew.returnValue = NewToken(tNUMBER, 0)
+	vmNew.error = 0
+	vmNew.extended = 0
+	vmNew.ranIfStatement = false
 	vmNew.tokens = tokens
 	vmNew.parentScope = vm
 	return vmNew, vmNew.Preprocess()
@@ -89,7 +98,6 @@ func (vm *AutoItVM) Run() error {
 	}
 
 	vm.running = true
-	vm.vars = make(map[string]*Token)
 	for vm.Running() {
 		if vm.Suspended() {
 			time.Sleep(time.Millisecond * 1)
@@ -123,17 +131,30 @@ func (vm *AutoItVM) Step() error {
 	case tEXIT:
 		tExitCode := vm.ReadToken()
 		if tExitCode != nil {
-			os.Exit(tExitCode.Int())
+			vm.exitCode = tExitCode.Int()
 		}
-		os.Exit(0)
-	case tSCOPE, tVARIABLE, tCALL, tFUNC, tFUNCRETURN, tIF, tELSE, tELSEIF, tIFEND:
+		if vm.exitMethod == "" {
+			os.Exit(vm.exitCode)
+		}
+		vm.HandleFunc(vm.exitMethod, nil)
+	case tSCOPE, tVARIABLE, tCALL, tFUNC, tIF, tELSE, tELSEIF, tIFEND:
 		vm.Move(-1)
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)
+		vm.Move(tRead)
 		if err != nil {
 			return err
 		}
+	case tFUNCRETURN:
+		vm.Move(-1)
+		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
+		tValue, tRead, err := eval.Eval(true)
 		vm.Move(tRead)
+		if err != nil {
+			return err
+		}
+		vm.returnValue = tValue
+		vm.Stop()
 	case tFLAG:
 		switch strings.ToLower(token.String()) {
 		case "include":
