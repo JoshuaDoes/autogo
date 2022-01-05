@@ -78,6 +78,26 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 			tDest := NewToken(tNUMBER, tSource.Float64() / tValue.Float64())
 			e.vm.Log("divide: %v", *tDest)
 			return e.mergeValue(tDest)
+		case "<":
+			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+			e.move(tRead)
+			if err != nil {
+				return nil, e.error("error getting value to compare less than: %v", err)
+			}
+
+			tDest := NewToken(tBOOLEAN, !(tSource.Float64() < tValue.Float64()))
+			e.vm.Log("less than: %v", *tDest)
+			return e.mergeValue(tDest)
+		case ">":
+			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+			e.move(tRead)
+			if err != nil {
+				return nil, e.error("error getting value to compare greater than: %v", err)
+			}
+
+			tDest := NewToken(tBOOLEAN, !(tSource.Float64() > tValue.Float64()))
+			e.vm.Log("greater than: %v", *tDest)
+			return e.mergeValue(tDest)
 		default:
 			e.move(-1)
 			return nil, e.error("illegal operator following value to merge: %s", tOp.String())
@@ -102,10 +122,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 		tDest := NewToken(tBOOLEAN, tSource.Bool() || tValue.Bool())
 		e.vm.Log("or bool: %v", *tDest)
 		return e.mergeValue(tDest)
-	case tEOL, tBLOCKEND:
-		e.move(-1)
-		return tSource, nil
-	case tSEPARATOR:
+	case tEOL, tBLOCKEND, tSEPARATOR, tTHEN:
 		e.move(-1)
 		return tSource, nil
 	default:
@@ -155,6 +172,125 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return nil, e.pos, err
 		}
 		return NewToken(tBOOLEAN, !tValue.Bool()), e.pos, nil
+	case tELSE:
+		blockIf := make([]*Token, 0)
+		for {
+			tBlock := e.readToken()
+			if tBlock == nil {
+				return nil, e.pos, e.error("expected end of else statement")
+			}
+
+			endBlock := false
+			switch tBlock.Type {
+				case tELSE, tELSEIF:
+					return nil, e.pos, e.error("unexpected else after else")
+				case tIFEND:
+					endBlock = true
+				default:
+					blockIf = append(blockIf, tBlock)
+			}
+			if endBlock {
+				break
+			}
+		}
+
+		vmIf, preprocess := e.vm.ExtendVM(blockIf)
+		if preprocess != nil {
+			return nil, e.pos, preprocess
+		}
+		vmIfErr := vmIf.Run()
+		if vmIfErr != nil {
+			return nil, e.pos, vmIfErr
+		}
+
+		return nil, e.pos, nil
+	case tIF, tELSEIF:
+		if expectValue {
+			return nil, e.pos, e.error("illegal if condition when expecting value")
+		}
+
+		tBool := e.readToken()
+		if tBool == nil {
+			return nil, e.pos, e.error("expected bool for not")
+		}
+
+		tValue, err := e.mergeValue(tBool)
+		if err != nil {
+			return nil, e.pos, err
+		}
+
+		tThen := e.readToken()
+		if tThen == nil || tThen.Type != tTHEN {
+			return nil, e.pos, e.error("expected then after if condition")
+		}
+
+		blockIf := make([]*Token, 0)
+		inLine := true
+		for {
+			tBlock := e.readToken()
+			if tBlock == nil {
+				return nil, e.pos, e.error("expected end of if statement")
+			}
+			e.vm.Log("if: %v", *tBlock)
+
+			endBlock := false
+			switch tBlock.Type {
+			case tEOL:
+				if inLine && len(blockIf) > 0 {
+					e.move(-1)
+					endBlock = true
+					break
+				}
+				blockIf = append(blockIf, tBlock)
+			case tELSE, tELSEIF:
+				if inLine {
+					return nil, e.pos, e.error("unexpected inline else")
+				}
+				endBlock = true
+				e.move(-1)
+				break
+			case tIFEND:
+				if inLine {
+					return nil, e.pos, e.error("unexpected inline endif")
+				}
+				endBlock = true
+				break
+			default:
+				if inLine && len(blockIf) == 0 {
+					inLine = false
+				}
+				blockIf = append(blockIf, tBlock)
+			}
+			if endBlock {
+				break
+			}
+		}
+
+		e.vm.Log("bool value: %v", tValue)
+		if tValue.Bool() {
+			vmIf, preprocess := e.vm.ExtendVM(blockIf)
+			if preprocess != nil {
+				return nil, e.pos, preprocess
+			}
+			vmIfErr := vmIf.Run()
+			if vmIfErr != nil {
+				return nil, e.pos, vmIfErr
+			}
+
+			//Read out the rest of the if statement
+			for {
+				tBlock := e.readToken()
+				if tBlock == nil {
+					return nil, e.pos, e.error("expected end of %s statement", tEval.Type)
+				}
+				if tBlock.Type == tIFEND {
+					break
+				}
+			}
+
+			return nil, e.pos, nil
+		}
+		return nil, e.pos, nil
 	case tSCOPE:
 		if expectValue {
 			return nil, e.pos, e.error("illegal variable declaration when expecting value")

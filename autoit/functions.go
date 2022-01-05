@@ -226,7 +226,7 @@ var (
 		},
 		"timerinit": &Function{
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				return NewToken(tNUMBER, time.Now().UnixNano()), nil
+				return NewToken(tNUMBER, float64(time.Now().UnixNano())), nil
 			},
 		},
 		/*"consolewriteline": &Function{
@@ -292,24 +292,7 @@ func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
 		return function.Func(vm, funcArgs)
 	}
 	if function.Block != nil {
-		/*vmFunc, err := NewAutoItTokenVM(vm.scriptPath, function.Block, vm.parentScope)
-		if err != nil {
-			return nil, err
-		}
-		vmFunc.Logger = vm.Logger
-
-		vmFunc.funcs = vm.funcs
-		vmFunc.vars = vm.vars*/
-
-		vmFuncPtr := *vm
-		vmFunc := &vmFuncPtr
-		vmFunc.running = false
-		vmFunc.suspended = false
-		vmFunc.pos = 0
-		vmFunc.tokens = function.Block
-		vmFunc.parentScope = vm
-
-		preprocess := vmFunc.Preprocess()
+		vmFunc, preprocess := vm.ExtendVM(function.Block)
 		if preprocess != nil {
 			return nil, preprocess
 		}

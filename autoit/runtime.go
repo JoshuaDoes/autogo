@@ -66,6 +66,17 @@ func NewAutoItTokenVM(scriptPath string, tokens []*Token, parentScope *AutoItVM)
 	}, nil
 }
 
+func (vm *AutoItVM) ExtendVM(tokens []*Token) (*AutoItVM, error) {
+	vmPtr := *vm
+	vmNew := &vmPtr
+	vmNew.running = false
+	vmNew.suspended = false
+	vmNew.pos = 0
+	vmNew.tokens = tokens
+	vmNew.parentScope = vm
+	return vmNew, vmNew.Preprocess()
+}
+
 func (vm *AutoItVM) Run() error {
 	if vm.Running() {
 		return nil
@@ -114,7 +125,7 @@ func (vm *AutoItVM) Step() error {
 			os.Exit(tExitCode.Int())
 		}
 		os.Exit(0)
-	case tSCOPE, tVARIABLE, tCALL, tFUNC, tFUNCRETURN:
+	case tSCOPE, tVARIABLE, tCALL, tFUNC, tFUNCRETURN, tIF, tELSE, tELSEIF:
 		vm.Move(-1)
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)
