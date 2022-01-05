@@ -26,6 +26,7 @@ type AutoItVM struct {
 	vars map[string]*Token
 	parentScope *AutoItVM
 	stdout, stderr string
+	ranIfStatement bool
 }
 
 func NewAutoItScriptVM(scriptPath string, script []byte, parentScope *AutoItVM) (*AutoItVM, error) {
@@ -125,7 +126,7 @@ func (vm *AutoItVM) Step() error {
 			os.Exit(tExitCode.Int())
 		}
 		os.Exit(0)
-	case tSCOPE, tVARIABLE, tCALL, tFUNC, tFUNCRETURN, tIF, tELSE, tELSEIF:
+	case tSCOPE, tVARIABLE, tCALL, tFUNC, tFUNCRETURN, tIF, tELSE, tELSEIF, tIFEND:
 		vm.Move(-1)
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)

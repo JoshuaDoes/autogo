@@ -17,118 +17,138 @@ func NewEvaluator(vm *AutoItVM, tokens []*Token) *Evaluator {
 }
 func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {	
 	tOp := e.readToken()
-	if tOp == nil {
-		return tSource, nil
-	}
 
-	switch tOp.Type {
-	case tOP:
-		switch tOp.String() {
-		case "&":
-			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
-			e.move(tRead)
-			if err != nil {
-				return nil, e.error("could not append value: %v", err)
-			}
-			if tValue == nil {
-				return nil, e.error("could not append nil value")
-			}
+	if tOp != nil {
+		switch tOp.Type {
+		case tOP:
+			switch tOp.String() {
+			case "&":
+				tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
+				e.move(tRead)
+				if err != nil {
+					return nil, e.error("could not append value: %v", err)
+				}
+				if tValue == nil {
+					return nil, e.error("could not append nil value")
+				}
 
-			tDest := NewToken(tSTRING, tSource.String())
-			tDest.Data += tValue.String()
-			e.vm.Log("append: %v", *tDest)
-			return e.mergeValue(tDest)
-		case "+":
-			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
-			e.move(tRead)
-			if err != nil {
-				return nil, e.error("error getting value to sum: %v", err)
-			}
+				tDest := NewToken(tSTRING, tSource.String())
+				tDest.Data += tValue.String()
+				e.vm.Log("append: %v", *tDest)
+				return e.mergeValue(tDest)
+			case "+":
+				tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
+				e.move(tRead)
+				if err != nil {
+					return nil, e.error("error getting value to sum: %v", err)
+				}
 
-			tDest := NewToken(tNUMBER, tSource.Float64() + tValue.Float64())
-			e.vm.Log("sum: %v", *tDest)
-			return e.mergeValue(tDest)
-		case "-":
-			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
-			e.move(tRead)
-			if err != nil {
-				return nil, e.error("error getting value to subtract: %v", err)
-			}
+				tDest := NewToken(tNUMBER, tSource.Float64() + tValue.Float64())
+				e.vm.Log("sum: %v", *tDest)
+				return e.mergeValue(tDest)
+			case "-":
+				tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
+				e.move(tRead)
+				if err != nil {
+					return nil, e.error("error getting value to subtract: %v", err)
+				}
 
-			tDest := NewToken(tNUMBER, tSource.Float64() - tValue.Float64())
-			e.vm.Log("subtract: %v", *tDest)
-			return e.mergeValue(tDest)
-		case "*":
-			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
-			e.move(tRead)
-			if err != nil {
-				return nil, e.error("error getting value to multiply: %v", err)
-			}
+				tDest := NewToken(tNUMBER, tSource.Float64() - tValue.Float64())
+				e.vm.Log("subtract: %v", *tDest)
+				return e.mergeValue(tDest)
+			case "*":
+				tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
+				e.move(tRead)
+				if err != nil {
+					return nil, e.error("error getting value to multiply: %v", err)
+				}
 
-			tDest := NewToken(tNUMBER, tSource.Float64() * tValue.Float64())
-			e.vm.Log("multiply: %v", *tDest)
-			return e.mergeValue(tDest)
-		case "/":
-			tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
-			e.move(tRead)
-			if err != nil {
-				return nil, e.error("error getting value to divide: %v", err)
-			}
+				tDest := NewToken(tNUMBER, tSource.Float64() * tValue.Float64())
+				e.vm.Log("multiply: %v", *tDest)
+				return e.mergeValue(tDest)
+			case "/":
+				tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
+				e.move(tRead)
+				if err != nil {
+					return nil, e.error("error getting value to divide: %v", err)
+				}
 
-			tDest := NewToken(tNUMBER, tSource.Float64() / tValue.Float64())
-			e.vm.Log("divide: %v", *tDest)
-			return e.mergeValue(tDest)
-		case "<":
+				tDest := NewToken(tNUMBER, tSource.Float64() / tValue.Float64())
+				e.vm.Log("divide: %v", *tDest)
+				return e.mergeValue(tDest)
+			case "<":
+				tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+				e.move(tRead)
+				if err != nil {
+					return nil, e.error("error getting value to compare less than: %v", err)
+				}
+
+				tDest := NewToken(tBOOLEAN, !(tSource.Float64() < tValue.Float64()))
+				e.vm.Log("less than: %v", *tDest)
+				return e.mergeValue(tDest)
+			case ">":
+				tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+				e.move(tRead)
+				if err != nil {
+					return nil, e.error("error getting value to compare greater than: %v", err)
+				}
+
+				tDest := NewToken(tBOOLEAN, !(tSource.Float64() > tValue.Float64()))
+				e.vm.Log("greater than: %v", *tDest)
+				return e.mergeValue(tDest)
+			case "=":
+				tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+				e.move(tRead)
+				if err != nil {
+					return nil, e.error("error getting value to compare equals: %v", err)
+				}
+
+				tDest := NewToken(tBOOLEAN, !(tSource.String() == tValue.String()))
+				e.vm.Log("equals: %v", *tDest)
+				return e.mergeValue(tDest)
+			default:
+				e.move(-1)
+				return nil, e.error("illegal operator following value to merge: %s", tOp.String())
+			}
+		case tAND:
 			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
 			e.move(tRead)
 			if err != nil {
-				return nil, e.error("error getting value to compare less than: %v", err)
+				return nil, e.error("error getting value to compare bool: %v", err)
 			}
 
-			tDest := NewToken(tBOOLEAN, !(tSource.Float64() < tValue.Float64()))
-			e.vm.Log("less than: %v", *tDest)
+			tDest := NewToken(tBOOLEAN, tSource.Bool() && tValue.Bool())
+			e.vm.Log("compare bool: %v", *tDest)
 			return e.mergeValue(tDest)
-		case ">":
+		case tOR:
 			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
 			e.move(tRead)
 			if err != nil {
-				return nil, e.error("error getting value to compare greater than: %v", err)
+				return nil, e.error("error getting value to or bool: %v", err)
 			}
 
-			tDest := NewToken(tBOOLEAN, !(tSource.Float64() > tValue.Float64()))
-			e.vm.Log("greater than: %v", *tDest)
+			tDest := NewToken(tBOOLEAN, tSource.Bool() || tValue.Bool())
+			e.vm.Log("or bool: %v", *tDest)
 			return e.mergeValue(tDest)
+		case tEOL, tBLOCKEND, tSEPARATOR, tTHEN:
+			e.move(-1)
+			return tSource, nil
 		default:
 			e.move(-1)
-			return nil, e.error("illegal operator following value to merge: %s", tOp.String())
+			return nil, e.error("illegal token following value to merge: %v", *tOp)
 		}
-	case tAND:
-		tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
-		e.move(tRead)
-		if err != nil {
-			return nil, e.error("error getting value to compare bool: %v", err)
-		}
-
-		tDest := NewToken(tBOOLEAN, tSource.Bool() && tValue.Bool())
-		e.vm.Log("compare bool: %v", *tDest)
-		return e.mergeValue(tDest)
-	case tOR:
-		tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
-		e.move(tRead)
-		if err != nil {
-			return nil, e.error("error getting value to or bool: %v", err)
-		}
-
-		tDest := NewToken(tBOOLEAN, tSource.Bool() || tValue.Bool())
-		e.vm.Log("or bool: %v", *tDest)
-		return e.mergeValue(tDest)
-	case tEOL, tBLOCKEND, tSEPARATOR, tTHEN:
-		e.move(-1)
-		return tSource, nil
-	default:
-		e.move(-1)
-		return nil, e.error("illegal token following value to merge: %v", *tOp)
 	}
+
+	switch tSource.Type {
+	case tMACRO:
+		tDest, err := e.vm.GetMacro(tSource.String())
+		e.vm.Log("macro: %v", *tDest)
+		if err != nil {
+			return nil, err
+		}
+		return e.mergeValue(tDest)
+	}
+	return tSource, nil
 }
 func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 	if len(e.tokens) == 0 {
@@ -147,7 +167,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		}
 		*/
 		return nil, e.pos, e.error("block not implemented")
-	case tSTRING, tNUMBER, tBOOLEAN, tBINARY:
+	case tSTRING, tNUMBER, tBOOLEAN, tBINARY, tMACRO:
 		if !expectValue {
 			return nil, e.pos, e.error("unexpected value")
 		}
@@ -174,6 +194,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		return NewToken(tBOOLEAN, !tValue.Bool()), e.pos, nil
 	case tELSE:
 		blockIf := make([]*Token, 0)
+		depth := 0
 		for {
 			tBlock := e.readToken()
 			if tBlock == nil {
@@ -182,17 +203,34 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 
 			endBlock := false
 			switch tBlock.Type {
-				case tELSE, tELSEIF:
+			case tIF:
+				depth++
+				blockIf = append(blockIf, tBlock)
+			case tELSE, tELSEIF:
+				if depth == 0 {
 					return nil, e.pos, e.error("unexpected else after else")
-				case tIFEND:
+				}
+				blockIf = append(blockIf, tBlock)
+			case tIFEND:
+				if depth == 0 {
 					endBlock = true
-				default:
-					blockIf = append(blockIf, tBlock)
+					break
+				}
+				depth--
+				blockIf = append(blockIf, tBlock)
+			default:
+				blockIf = append(blockIf, tBlock)
 			}
 			if endBlock {
+				e.move(-2) //ifblock
 				break
 			}
 		}
+
+		if e.vm.ranIfStatement {
+			return nil, e.pos, nil //e.error("already ran else statement")
+		}
+		e.vm.ranIfStatement = true
 
 		vmIf, preprocess := e.vm.ExtendVM(blockIf)
 		if preprocess != nil {
@@ -226,6 +264,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 
 		blockIf := make([]*Token, 0)
 		inLine := true
+		depth := 0
 		for {
 			tBlock := e.readToken()
 			if tBlock == nil {
@@ -235,26 +274,31 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 
 			endBlock := false
 			switch tBlock.Type {
-			case tEOL:
-				if inLine && len(blockIf) > 0 {
-					e.move(-1)
+			case tIF:
+				if inLine {
+					return nil, e.pos, e.error("unexpected inline if")
+				}
+				depth++
+				blockIf = append(blockIf, tBlock)
+			case tELSE, tELSEIF:
+				if inLine {
+					return nil, e.pos, e.error("unexpected inline else/elseif")
+				}
+				if depth == 0 {
 					endBlock = true
 					break
 				}
 				blockIf = append(blockIf, tBlock)
-			case tELSE, tELSEIF:
-				if inLine {
-					return nil, e.pos, e.error("unexpected inline else")
-				}
-				endBlock = true
-				e.move(-1)
-				break
 			case tIFEND:
 				if inLine {
 					return nil, e.pos, e.error("unexpected inline endif")
 				}
-				endBlock = true
-				break
+				if depth == 0 {
+					endBlock = true
+					break
+				}
+				depth--
+				blockIf = append(blockIf, tBlock)
 			default:
 				if inLine && len(blockIf) == 0 {
 					inLine = false
@@ -262,12 +306,18 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 				blockIf = append(blockIf, tBlock)
 			}
 			if endBlock {
+				e.move(-2) //ifblock
 				break
 			}
 		}
 
 		e.vm.Log("bool value: %v", tValue)
 		if tValue.Bool() {
+			if e.vm.ranIfStatement && tEval.Type == tELSEIF {
+				return nil, e.pos, e.error("already ran if statement")
+			}
+			e.vm.ranIfStatement = true
+
 			vmIf, preprocess := e.vm.ExtendVM(blockIf)
 			if preprocess != nil {
 				return nil, e.pos, preprocess
@@ -278,18 +328,38 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			}
 
 			//Read out the rest of the if statement
+			depth := 0
 			for {
 				tBlock := e.readToken()
 				if tBlock == nil {
 					return nil, e.pos, e.error("expected end of %s statement", tEval.Type)
 				}
-				if tBlock.Type == tIFEND {
+
+				endBlock := false
+				switch tBlock.Type {
+				case tIF:
+					depth++
+				case tIFEND:
+					if depth == 0 {
+						endBlock = true
+						break
+					}
+					depth--
+				}
+				if endBlock {
+					e.move(-2)
 					break
 				}
 			}
 
 			return nil, e.pos, nil
 		}
+		return nil, e.pos, nil
+	case tIFEND:
+		if !e.vm.ranIfStatement {
+			return nil, e.pos, e.error("unexpected endif")
+		}
+		e.vm.ranIfStatement = false
 		return nil, e.pos, nil
 	case tSCOPE:
 		if expectValue {
@@ -373,13 +443,6 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			e.move(-1)
 			return nil, e.pos, e.error("illegal token following variable: %v", *tOp)
 		}
-	case tMACRO:
-		tValue, err := e.vm.GetMacro(tEval.String())
-		if err != nil {
-			return nil, e.pos, err
-		}
-		tValue, err = e.mergeValue(tValue)
-		return tValue, e.pos, err
 	case tCALL:
 		callTokens, err := e.readBlock()
 		if err != nil {
