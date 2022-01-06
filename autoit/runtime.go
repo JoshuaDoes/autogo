@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 	"path/filepath"
+
+	"github.com/google/uuid"
 )
 
 type AutoItVM struct {
@@ -29,6 +31,7 @@ type AutoItVM struct {
 	returnValue *Token
 	numParams int
 	vars map[string]*Token
+	handles map[string]interface{}
 	parentScope *AutoItVM
 	stdout, stderr string
 	ranIfStatement bool
@@ -52,6 +55,7 @@ func NewAutoItScriptVM(scriptPath string, script []byte, parentScope *AutoItVM) 
 		parentScope: parentScope,
 		funcs: make(map[string]*Function),
 		vars: make(map[string]*Token),
+		handles: make(map[string]interface{}, 0),
 		returnValue: NewToken(tNUMBER, 0),
 	}, nil
 }
@@ -68,6 +72,7 @@ func NewAutoItTokenVM(scriptPath string, tokens []*Token, parentScope *AutoItVM)
 		parentScope: parentScope,
 		funcs: make(map[string]*Function),
 		vars: make(map[string]*Token),
+		handles: make(map[string]interface{}, 0),
 		returnValue: NewToken(tNUMBER, 0),
 	}, nil
 }
@@ -117,6 +122,11 @@ func (vm *AutoItVM) Step() error {
 		tExitCode := vm.ReadToken()
 		if tExitCode != nil {
 			vm.exitCode = tExitCode.Int()
+			vm.Move(-1)
+			_, _, err := NewEvaluator(vm, vm.tokens[vm.pos:]).Eval(false)
+			if err != nil {
+				return err
+			}
 		}
 		if vm.exitMethod == "" {
 			os.Exit(vm.exitCode)
@@ -131,7 +141,6 @@ func (vm *AutoItVM) Step() error {
 			return err
 		}
 	case tFUNCRETURN:
-		vm.Move(-1)
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		tValue, tRead, err := eval.Eval(true)
 		vm.Move(tRead)
@@ -311,8 +320,8 @@ func (vm *AutoItVM) Move(pos int) {
 	vm.pos += pos
 }
 
-//GetVariable returns the specified variable or nil if it doesn't exist
-func (vm *AutoItVM) GetVariable(variableName string) (*Token) {
+//GetVariable returns the token for the specified variable or nil if it doesn't exist
+func (vm *AutoItVM) GetVariable(variableName string) *Token {
 	if variable, exists := vm.vars[strings.ToLower(variableName)]; exists {
 		vm.Log("GET $%s", variableName)
 		return variable
@@ -324,7 +333,31 @@ func (vm *AutoItVM) GetVariable(variableName string) (*Token) {
 	}
 	return nil
 }
+//SetVariable sets the specified variable to the given token
 func (vm *AutoItVM) SetVariable(variableName string, token *Token) {
 	vm.Log("SET $%s = %v", variableName, *token)
 	vm.vars[strings.ToLower(variableName)] = token
+}
+
+//GetHandle returns the token for the specified handle or nil if it doesn't exist
+func (vm *AutoItVM) GetHandle(handleId string) interface{} {
+	if handle, exists := vm.handles[handleId]; exists {
+		return handle
+	}
+	if vm.parentScope != nil {
+		if handle := vm.parentScope.GetHandle(handleId); handle != nil {
+			return handle
+		}
+	}
+	return nil
+}
+//AddHandle creates a handle from the given token and returns the handle id
+func (vm *AutoItVM) AddHandle(value interface{}) string {
+	handleId := uuid.NewString()
+	vm.handles[handleId] = value
+	return handleId
+}
+//DestroyHandle destroys the given handle id
+func (vm *AutoItVM) DestroyHandle(handleId string) {
+	vm.handles[handleId] = nil
 }

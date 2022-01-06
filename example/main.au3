@@ -1,29 +1,20 @@
 Func ConsoleWriteLn($sMsg = "")
-	ConsoleWrite($sMsg & @CRLF)
-	SetError(1)
+	ConsoleWrite($sMsg)
+	If @OSType = "WIN32_NT" Then
+		ConsoleWrite(@CR)
+	EndIf
+	ConsoleWrite(@LF)
+	Return SetError(1, 0, 1) ;Make useful for exit
 EndFunc
 
-ConsoleWriteLn("Test")
-Switch @error
-	Case 0
-		ConsoleWriteLn("0")
-	Case 1
-		ConsoleWriteLn("1")
-	Case Else
-		ConsoleWriteLn(@error)
-EndSwitch
-
-Switch @OSType
-	Case "linux"
-		ConsoleWriteLn("Hello there, free penguin!")
-	Case "darwin"
-		ConsoleWriteLn("Hello there, Apple person!")
-	Case "windows", "WIN32_NT"
-		ConsoleWriteLn("Hello there, Microsoft person!")
-	Case "android"
-		ConsoleWriteLn("Hello there, Google person!")
-	Case "ios"
-		ConsoleWriteLn("Hello there, Apple mobile person!")
-	Case Else
-		ConsoleWriteLn("Unrecognized platform: " & @OSType)
-EndSwitch
+;#Debug
+$file = FileOpen("main.au3")
+If @error Then
+	Exit ConsoleWriteLn("Error opening file")
+EndIf
+ConsoleWriteLn("Handle: " & $file)
+$data = FileRead($file)
+If @error Then
+	Exit ConsoleWriteLn("Error reading file")
+EndIf
+ConsoleWriteLn("Data:" & @CRLF & $data)

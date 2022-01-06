@@ -21,7 +21,7 @@ func NewToken(tType TokenType, data interface{}) *Token {
 		return &Token{Type: tNUMBER, Data: strconv.FormatFloat(data.(float64), 'f', -1, 64)}
 	case string:
 		if data.(string) != "" {
-			return &Token{Type: tSTRING, Data: data.(string)}
+			return &Token{Type: tType, Data: data.(string)}
 		}
 	case bool:
 		boolTF := data.(bool)
@@ -132,6 +132,7 @@ func (t *Token) Bytes() []byte {
 
 type TokenType string
 const (
+	//Internal tokens
 	tILLEGAL TokenType = "ILLEGAL"
 	tEOL TokenType = "EOL"
 	tEXTEND TokenType = "EXTEND"
@@ -187,4 +188,7 @@ const (
 	tREVAR TokenType = "REVAR"
 	tENUM TokenType = "ENUM"
 	tVOLATILE TokenType = "VOLATILE"
+
+	//Tokens used by runtime
+	tHANDLE TokenType = "HANDLE" //Stores a handle id
 )

@@ -1,9 +1,10 @@
 package autoit
 
 import (
-	"os"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 	"net/http"
 	"strings"
 	"time"
@@ -46,9 +47,9 @@ var (
 				&FunctionArg{Name: "title"},
 				&FunctionArg{Name: "initDir"},
 				&FunctionArg{Name: "filter"},
-				&FunctionArg{Name: "options", DefaultValue: NewToken(tNUMBER, "0")},
+				&FunctionArg{Name: "options", DefaultValue: NewToken(tNUMBER, 0)},
 				&FunctionArg{Name: "defaultName", DefaultValue: NewToken(tSTRING, "")},
-				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, "0")},
+				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, 0)},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 				filterSplit := strings.Split(args["filter"].String(), "(")
@@ -73,9 +74,9 @@ var (
 				&FunctionArg{Name: "title"},
 				&FunctionArg{Name: "initDir"},
 				&FunctionArg{Name: "filter"},
-				&FunctionArg{Name: "options", DefaultValue: NewToken(tNUMBER, "0")},
+				&FunctionArg{Name: "options", DefaultValue: NewToken(tNUMBER, 0)},
 				&FunctionArg{Name: "defaultName", DefaultValue: NewToken(tSTRING, "")},
-				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, "0")},
+				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, 0)},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 				filterSplit := strings.Split(args["filter"].String(), "(")
@@ -99,9 +100,9 @@ var (
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "dialogText"},
 				&FunctionArg{Name: "rootDir"},
-				&FunctionArg{Name: "flag", DefaultValue: NewToken(tNUMBER, "0")},
+				&FunctionArg{Name: "flag", DefaultValue: NewToken(tNUMBER, 0)},
 				&FunctionArg{Name: "initialDir", DefaultValue: NewToken(tSTRING, "")},
-				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, "0")},
+				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, 0)},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 				directory, err := dialog.Directory().Title(args["dialogText"].String()).SetStartDir(args["initialDir"].String()).Browse()
@@ -114,18 +115,66 @@ var (
 				return NewToken(tSTRING, directory), nil
 			},
 		},*/
+		"fileopen": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "filename"},
+				&FunctionArg{Name: "mode", DefaultValue: NewToken(tNUMBER, 0)},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				file, err := os.Open(args["filename"].String())
+				if err != nil {
+					return NewToken(tNUMBER, -1), nil
+				}
+				handleId := vm.AddHandle(file)
+				return NewToken(tHANDLE, handleId), nil
+			},
+		},
 		"fileread": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "file"},
-				&FunctionArg{Name: "count", DefaultValue: NewToken(tNUMBER, "0")},
+				&FunctionArg{Name: "count", DefaultValue: NewToken(tNUMBER, 0)},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				fileData, err := os.ReadFile(args["file"].String())
-				if err != nil {
-					return nil, err
+				file := &os.File{}
+				close := false
+
+				if args["file"].Type == tHANDLE {
+					file = vm.GetHandle(args["file"].String()).(*os.File)
+					if file == nil {
+						vm.SetError(1)
+						return NewToken(tSTRING, ""), nil
+					}
+				} else {
+					openFile, err := os.Open(args["file"].String()) //TODO: os.OpenFile() with flags
+					if err != nil {
+						vm.SetError(1)
+						return NewToken(tSTRING, ""), nil
+					}
+					file = openFile
+					close = true
 				}
+
+				fileStat, err := file.Stat()
+				if err != nil {
+					vm.SetError(1)
+					return NewToken(tSTRING, ""), nil
+				}
+
+				fileData := make([]byte, fileStat.Size())
 				if args["count"].Int() > 0 {
-					return NewToken(tBINARY, fileData[:args["count"].Int()]), nil
+					fileData = make([]byte, args["count"].Int())
+				}
+				fileRead, err := file.Read(fileData)
+				if close {
+					file.Close()
+				}
+				vm.SetExtended(fileRead)
+				if err == io.EOF {
+					vm.SetError(-1)
+					return NewToken(tSTRING, ""), nil
+				}
+				if err != nil {
+					vm.SetError(1)
 				}
 				return NewToken(tBINARY, fileData), nil
 			},
@@ -138,7 +187,7 @@ var (
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 				err := os.WriteFile(args["file"].String(), args["data"].Bytes(), 0666)
 				if err != nil {
-					return NewToken(tNUMBER, "0"), err
+					return NewToken(tNUMBER, 0), err
 				}
 				return NewToken(tNUMBER, "1"), nil
 			},
@@ -146,7 +195,7 @@ var (
 		"inetread": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "url"},
-				&FunctionArg{Name: "options", DefaultValue: NewToken(tNUMBER, "0")},
+				&FunctionArg{Name: "options", DefaultValue: NewToken(tNUMBER, 0)},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 				resp, err := http.Get(args["url"].String())
@@ -166,8 +215,8 @@ var (
 				&FunctionArg{Name: "flag"},
 				&FunctionArg{Name: "title"},
 				&FunctionArg{Name: "text"},
-				&FunctionArg{Name: "timeout", DefaultValue: NewToken(tNUMBER, "0")},
-				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, "0")},
+				&FunctionArg{Name: "timeout", DefaultValue: NewToken(tNUMBER, 0)},
+				&FunctionArg{Name: "hwnd", DefaultValue: NewToken(tNUMBER, 0)},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 				switch args["flag"].Int() {
@@ -314,6 +363,10 @@ func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
 	if len(args) < minimumArgs {
 		return nil, vm.Error("%s(%d) called with less than required args (%d/%d)", funcName, len(function.Args), len(args), minimumArgs)
 	}
+
+	vm.SetError(0)
+	vm.SetExtended(0)
+	vm.SetReturnValue(NewToken(tNUMBER, 0))
 
 	if function.Func != nil {
 		return function.Func(vm, funcArgs)

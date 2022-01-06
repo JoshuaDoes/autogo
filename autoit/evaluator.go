@@ -23,7 +23,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 		if err != nil {
 			return nil, err
 		}
-		return tDest, nil
+		return e.mergeValue(tDest)
 	}
 
 	tOp := e.readToken()
@@ -172,7 +172,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		}
 		*/
 		return nil, e.pos, e.error("block not implemented")
-	case tSTRING, tNUMBER, tBOOLEAN, tBINARY, tMACRO:
+	case tSTRING, tNUMBER, tBOOLEAN, tBINARY, tMACRO, tHANDLE:
 		if !expectValue {
 			return nil, e.pos, e.error("unexpected value")
 		}
@@ -214,7 +214,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 
 		tThen := e.readToken()
 		if tThen == nil || tThen.Type != tTHEN {
-			return nil, e.pos, e.error("expected then after if condition")
+			return nil, e.pos, e.error("expected then after if condition, instead got: %v", tThen)
 		}
 
 		blockIf := make([]*Token, 0)
@@ -564,7 +564,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 				}
 
 				e.vm.SetVariable(tEval.String(), tValue)
-				e.vm.Log("$%s = %v", tEval.String(), *tValue)
+				e.vm.Log("$%s = %v:%v", tEval.String(), *e.tokens[e.pos], *tValue)
 				return nil, e.pos+tRead, nil
 			default:
 				e.move(-1)
@@ -590,7 +590,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		}
 		callParams := e.evalBlock(callTokens)
 		if len(callParams) > 1 {
-			if callParams[len(callParams)-1].Type == tBLOCKEND {
+			if callParams[len(callParams)-1] == nil || callParams[len(callParams)-1].Type == tBLOCKEND {
 				callParams = callParams[:len(callParams)-1] //Strip leftover BLOCKEND from somewhere, TODO: find it
 			}
 		}
@@ -601,6 +601,8 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		if expectValue {
 			return nil, e.pos, e.error("illegal end of line when expecting value")
 		}
+		return nil, e.pos, nil
+	case tCOMMENT:
 		return nil, e.pos, nil
 	default:
 		return nil, e.pos, e.error("token not implemented: %v", *tEval)
