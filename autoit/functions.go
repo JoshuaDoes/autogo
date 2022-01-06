@@ -341,9 +341,9 @@ func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
 			return nil, vm.Error("error running function block: %v", err)
 		}
 
-		vm.error = vmFunc.error
-		vm.extended = vmFunc.extended
-		vm.returnValue = vmFunc.returnValue
+		vm.SetError(vmFunc.GetError())
+		vm.SetExtended(vmFunc.GetExtended())
+		vm.SetReturnValue(vmFunc.GetReturnValue())
 		return vmFunc.returnValue, nil
 	}
 	return nil, vm.Error("no handler for function %s", funcName)

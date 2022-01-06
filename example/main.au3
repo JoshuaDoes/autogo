@@ -1,6 +1,6 @@
 Func ConsoleWriteLn($sMsg = "")
 	ConsoleWrite($sMsg & @CRLF)
-	SetError(0)
+	SetError(1)
 EndFunc
 
 If 0 < 1 Then

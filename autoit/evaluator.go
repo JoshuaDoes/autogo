@@ -196,56 +196,6 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return nil, e.pos, err
 		}
 		return NewToken(tBOOLEAN, !tValue.Bool()), e.pos, nil
-	case tELSE:
-		blockIf := make([]*Token, 0)
-		depth := 0
-		for {
-			tBlock := e.readToken()
-			if tBlock == nil {
-				return nil, e.pos, e.error("expected end of else statement")
-			}
-
-			endBlock := false
-			switch tBlock.Type {
-			case tIF:
-				depth++
-				blockIf = append(blockIf, tBlock)
-			case tELSE, tELSEIF:
-				if depth == 0 {
-					return nil, e.pos, e.error("unexpected else after else")
-				}
-				blockIf = append(blockIf, tBlock)
-			case tIFEND:
-				if depth == 0 {
-					endBlock = true
-					break
-				}
-				depth--
-				blockIf = append(blockIf, tBlock)
-			default:
-				blockIf = append(blockIf, tBlock)
-			}
-			if endBlock {
-				e.move(-2) //ifblock
-				break
-			}
-		}
-
-		if e.vm.ranIfStatement {
-			return nil, e.pos, nil //e.error("already ran else statement")
-		}
-		e.vm.ranIfStatement = true
-
-		vmIf, preprocess := e.vm.ExtendVM(blockIf)
-		if preprocess != nil {
-			return nil, e.pos, preprocess
-		}
-		vmIfErr := vmIf.Run()
-		if vmIfErr != nil {
-			return nil, e.pos, vmIfErr
-		}
-
-		return nil, e.pos, nil
 	case tIF, tELSEIF:
 		if expectValue {
 			return nil, e.pos, e.error("illegal if condition when expecting value")
@@ -359,6 +309,56 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return nil, e.pos, nil
 		}
 		return nil, e.pos, nil
+	case tELSE:
+		blockIf := make([]*Token, 0)
+		depth := 0
+		for {
+			tBlock := e.readToken()
+			if tBlock == nil {
+				return nil, e.pos, e.error("expected end of else statement")
+			}
+
+			endBlock := false
+			switch tBlock.Type {
+			case tIF:
+				depth++
+				blockIf = append(blockIf, tBlock)
+			case tELSE, tELSEIF:
+				if depth == 0 {
+					return nil, e.pos, e.error("unexpected else after else")
+				}
+				blockIf = append(blockIf, tBlock)
+			case tIFEND:
+				if depth == 0 {
+					endBlock = true
+					break
+				}
+				depth--
+				blockIf = append(blockIf, tBlock)
+			default:
+				blockIf = append(blockIf, tBlock)
+			}
+			if endBlock {
+				e.move(-2) //ifblock
+				break
+			}
+		}
+
+		if e.vm.ranIfStatement {
+			return nil, e.pos, nil //e.error("already ran else statement")
+		}
+		e.vm.ranIfStatement = true
+
+		vmIf, preprocess := e.vm.ExtendVM(blockIf)
+		if preprocess != nil {
+			return nil, e.pos, preprocess
+		}
+		vmIfErr := vmIf.Run()
+		if vmIfErr != nil {
+			return nil, e.pos, vmIfErr
+		}
+
+		return nil, e.pos, nil
 	case tIFEND:
 		e.vm.ranIfStatement = false
 		return nil, e.pos, nil
@@ -464,26 +464,6 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 
 		tValue, err := e.vm.HandleFunc(tEval.String(), callParams)
 		return tValue, e.pos, err
-	/*case tFUNCRETURN:
-		tValue := e.readToken()
-		if tValue == nil {
-			return nil, e.pos, nil
-		}
-		if tValue.Type == tEOL {
-			e.move(-1)
-			return nil, e.pos, nil
-		}
-
-		tValue, err := e.mergeValue(tValue)
-		if err != nil {
-			return nil, e.pos, err
-		}
-
-		e.vm.returnValue = tValue
-		if expectValue {
-			return tValue, e.pos, nil
-		}
-		return nil, e.pos, nil*/
 	case tEOL:
 		if expectValue {
 			return nil, e.pos, e.error("illegal end of line when expecting value")

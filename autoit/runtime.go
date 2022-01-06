@@ -22,11 +22,11 @@ type AutoItVM struct {
 	//Runtime and memory
 	running bool
 	suspended bool
-	returnValue *Token
 	error int
 	exitCode int
 	exitMethod string
 	extended int
+	returnValue *Token
 	numParams int
 	vars map[string]*Token
 	parentScope *AutoItVM
@@ -70,21 +70,6 @@ func NewAutoItTokenVM(scriptPath string, tokens []*Token, parentScope *AutoItVM)
 		vars: make(map[string]*Token),
 		returnValue: NewToken(tNUMBER, 0),
 	}, nil
-}
-
-func (vm *AutoItVM) ExtendVM(tokens []*Token) (*AutoItVM, error) {
-	vmPtr := *vm
-	vmNew := &vmPtr
-	vmNew.running = false
-	vmNew.suspended = false
-	vmNew.pos = 0
-	vmNew.returnValue = NewToken(tNUMBER, 0)
-	vmNew.error = 0
-	vmNew.extended = 0
-	vmNew.ranIfStatement = false
-	vmNew.tokens = tokens
-	vmNew.parentScope = vm
-	return vmNew, vmNew.Preprocess()
 }
 
 func (vm *AutoItVM) Run() error {
@@ -153,7 +138,7 @@ func (vm *AutoItVM) Step() error {
 		if err != nil {
 			return err
 		}
-		vm.returnValue = tValue
+		vm.SetReturnValue(tValue)
 		vm.Stop()
 	case tFLAG:
 		switch strings.ToLower(token.String()) {
@@ -273,6 +258,40 @@ func (vm *AutoItVM) Stdout() string {
 }
 func (vm *AutoItVM) Stderr() string {
 	return vm.stderr
+}
+
+func (vm *AutoItVM) GetError() int {
+	return vm.error
+}
+func (vm *AutoItVM) SetError(error int) {
+	vm.error = error
+}
+func (vm *AutoItVM) GetExtended() int {
+	return vm.extended
+}
+func (vm *AutoItVM) SetExtended(extended int) {
+	vm.extended = extended
+}
+func (vm *AutoItVM) GetReturnValue() *Token {
+	return vm.returnValue
+}
+func (vm *AutoItVM) SetReturnValue(returnValue *Token) {
+	vm.returnValue = returnValue
+}
+
+func (vm *AutoItVM) ExtendVM(tokens []*Token) (*AutoItVM, error) {
+	vmPtr := *vm
+	vmNew := &vmPtr
+	vmNew.running = false
+	vmNew.suspended = false
+	vmNew.pos = 0
+	vmNew.returnValue = NewToken(tNUMBER, 0)
+	vmNew.error = 0
+	vmNew.extended = 0
+	vmNew.ranIfStatement = false
+	vmNew.tokens = tokens
+	vmNew.parentScope = vm
+	return vmNew, vmNew.Preprocess()
 }
 
 func (vm *AutoItVM) Tokens() []*Token {
