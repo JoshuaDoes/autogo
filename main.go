@@ -8,6 +8,10 @@ import (
 	"github.com/JoshuaDoes/autogo/autoit"
 )
 
+var (
+	Script = ";INTERNAL SCRIPT\n#include \"main.au3\""
+)
+
 func runVM(scriptPath string, script []byte) error {
 	vm, err := autoit.NewAutoItScriptVM(scriptPath, script, nil)
 	if err != nil {
@@ -40,7 +44,7 @@ func main() {
 			}
 		}
 	} else {
-		err := runVM("main.au3", []byte(";INTERNAL SCRIPT\n#include \"main.au3\""))
+		err := runVM("SCRIPT.AU3", []byte(Script))
 		if err != nil {
 			fmt.Println(err)
 		}
