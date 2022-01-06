@@ -3,18 +3,27 @@ Func ConsoleWriteLn($sMsg = "")
 	SetError(1)
 EndFunc
 
-If 0 < 1 Then
-	ConsoleWriteLn("0 < 1: True")
-	If 1 > 0 Then
-		ConsoleWriteLn("1 > 0: True")
-		If @ScriptName = "main.au3" Then
-			ConsoleWriteLn("@ScriptName = main.au3: True")
-		Else
-			ConsoleWriteLn("@ScriptName = main.au3: False")
-		EndIf
-	Else
-		ConsoleWriteLn("1 > 0: False")
-	EndIf
-Else
-	ConsoleWriteLn("0 < 1: False")
-EndIf
+ConsoleWriteLn("Test")
+Switch @error
+	Case 0
+		ConsoleWriteLn("0")
+	Case 1
+		ConsoleWriteLn("1")
+	Case Else
+		ConsoleWriteLn(@error)
+EndSwitch
+
+Switch @OSType
+	Case "linux"
+		ConsoleWriteLn("Hello there, free penguin!")
+	Case "darwin"
+		ConsoleWriteLn("Hello there, Apple person!")
+	Case "windows", "WIN32_NT"
+		ConsoleWriteLn("Hello there, Microsoft person!")
+	Case "android"
+		ConsoleWriteLn("Hello there, Google person!")
+	Case "ios"
+		ConsoleWriteLn("Hello there, Apple mobile person!")
+	Case Else
+		ConsoleWriteLn("Unrecognized platform: " & @OSType)
+EndSwitch

@@ -15,12 +15,22 @@ func NewEvaluator(vm *AutoItVM, tokens []*Token) *Evaluator {
 		tokens: tokens,
 	}
 }
-func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {	
+func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
+	switch tSource.Type {
+	case tMACRO:
+		tDest, err := e.vm.GetMacro(tSource.String())
+		e.vm.Log("macro: %v", *tDest)
+		if err != nil {
+			return nil, err
+		}
+		return tDest, nil
+	}
+
 	tOp := e.readToken()
 	if tOp != nil {
 		tSourceValue, _, err := NewEvaluator(e.vm, []*Token{tSource}).Eval(true)
 		if err != nil {
-			return nil, e.error("could not get value for source to merge")
+			return nil, err
 		}
 
 		switch tOp.Type {
@@ -143,15 +153,6 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 		}
 	}
 
-	switch tSource.Type {
-	case tMACRO:
-		tDest, err := e.vm.GetMacro(tSource.String())
-		e.vm.Log("macro: %v", *tDest)
-		if err != nil {
-			return nil, err
-		}
-		return e.mergeValue(tDest)
-	}
 	return tSource, nil
 }
 func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
@@ -310,6 +311,10 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		}
 		return nil, e.pos, nil
 	case tELSE:
+		if expectValue {
+			return nil, e.pos, e.error("illegal else condition when expecting value")
+		}
+
 		blockIf := make([]*Token, 0)
 		depth := 0
 		for {
@@ -361,6 +366,134 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		return nil, e.pos, nil
 	case tIFEND:
 		e.vm.ranIfStatement = false
+		return nil, e.pos, nil
+	case tSWITCH:
+		if expectValue {
+			return nil, e.pos, e.error("illegal switch condition when expecting value")
+		}
+
+		tSourceValue := e.readToken()
+		if tSourceValue == nil {
+			return nil, e.pos, e.error("expected value to switch on")
+		}
+		e.vm.Log("source value: %v", *tSourceValue)
+
+		tSwitchValue, err := e.mergeValue(tSourceValue)
+		if err != nil {
+			return nil, e.pos, err
+		}
+		e.vm.Log("switch value: %v", *tSwitchValue)
+
+		blockSwitch := make([]*Token, 0)
+		depth := 0
+		addingCase := false
+		evalCase := false
+		for {
+			tBlock := e.readToken()
+			if tBlock == nil {
+				return nil, e.pos, e.error("expected end of switch statement")
+			}
+			e.vm.Log("switch (%v): %v", addingCase, *tBlock)
+
+			endBlock := false
+			switch tBlock.Type {
+			case tSWITCH:
+				depth++
+				if addingCase {
+					blockSwitch = append(blockSwitch, tBlock)
+				}
+			case tCASE, tSEPARATOR:
+				if evalCase {
+					addingCase = false
+					continue
+				}
+
+				if depth > 0 {
+					if addingCase {
+						blockSwitch = append(blockSwitch, tBlock)
+					}
+					continue
+				}
+				addingCase = false
+
+				tCaseSourceValue := e.readToken()
+				if tCaseSourceValue == nil {
+					return nil, e.pos, e.error("expected case value and end of switch statement")
+				}
+				if tCaseSourceValue.Type == tELSE {
+					addingCase = true
+					evalCase = true
+				} else {
+					tCaseValue, err := e.mergeValue(tCaseSourceValue)
+					if err != nil {
+						return nil, e.pos, err
+					}
+					if tSwitchValue.String() == tCaseValue.String() {
+						addingCase = true
+						evalCase = true
+					}
+
+					for {
+						tSeparator := e.readToken()
+						if tSeparator != nil && tSeparator.Type == tSEPARATOR {
+							//Make sure we only evaluate values once
+							if evalCase {
+								e.move(1)
+								continue
+							}
+
+							//Check next case value after separator
+							tCaseSourceValue = e.readToken()
+							if tCaseSourceValue == nil {
+								return nil, e.pos, e.error("expected value after case separator")
+							}
+							if tCaseSourceValue.Type == tELSE {
+								return nil, e.pos, e.error("unexpected else after case separator")
+							}
+							tCaseValue, err = e.mergeValue(tCaseSourceValue)
+							if err != nil {
+								return nil, e.pos, err
+							}
+							if tSwitchValue.String() == tCaseValue.String() {
+								addingCase = true
+								evalCase = true
+							}
+						} else {
+							e.move(-1)
+							break
+						}
+					}
+				}
+			case tSWITCHEND:
+				if depth == 0 {
+					endBlock = true
+					break
+				}
+				depth--
+				if addingCase {
+					blockSwitch = append(blockSwitch, tBlock)
+				}
+			default:
+				if addingCase {
+					blockSwitch = append(blockSwitch, tBlock)
+				}
+			}
+			if endBlock {
+				break
+			}
+		}
+
+		e.vm.Log("Final switch block: %v", blockSwitch)
+
+		vmSwitch, preprocess := e.vm.ExtendVM(blockSwitch)
+		if preprocess != nil {
+			return nil, e.pos, preprocess
+		}
+		vmSwitchErr := vmSwitch.Run()
+		if vmSwitchErr != nil {
+			return nil, e.pos, vmSwitchErr
+		}
+
 		return nil, e.pos, nil
 	case tSCOPE:
 		if expectValue {
@@ -604,7 +737,7 @@ func (e *Evaluator) evalBlock(block []*Token) []*Token {
 }
 func (e *Evaluator) error(format string, params ...interface{}) error {
 	if params != nil {
-		return fmt.Errorf("eval: " + format, params...)
+		return fmt.Errorf("evaluator: " + format, params...)
 	}
-	return fmt.Errorf("eval: " + format)
+	return fmt.Errorf("evaluator: " + format)
 }

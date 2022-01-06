@@ -122,7 +122,7 @@ func (vm *AutoItVM) Step() error {
 			os.Exit(vm.exitCode)
 		}
 		vm.HandleFunc(vm.exitMethod, nil)
-	case tSCOPE, tVARIABLE, tCALL, tFUNC, tIF, tELSE, tELSEIF, tIFEND:
+	case tSCOPE, tVARIABLE, tCALL, tFUNC, tIF, tELSE, tELSEIF, tIFEND, tCASE, tSWITCH, tSWITCHEND:
 		vm.Move(-1)
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)
@@ -230,9 +230,9 @@ func (vm *AutoItVM) Log(format string, params ...interface{}) {
 }
 func (vm *AutoItVM) Error(format string, params ...interface{}) error {
 	if params != nil {
-		return fmt.Errorf("autoit: " + format, params...)
+		return fmt.Errorf("runtime: " + format, params...)
 	}
-	return fmt.Errorf("autoit: " + format)
+	return fmt.Errorf("runtime: " + format)
 }
 
 func (vm *AutoItVM) Running() bool {
