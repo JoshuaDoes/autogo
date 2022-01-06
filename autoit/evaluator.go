@@ -17,8 +17,12 @@ func NewEvaluator(vm *AutoItVM, tokens []*Token) *Evaluator {
 }
 func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {	
 	tOp := e.readToken()
-
 	if tOp != nil {
+		tSourceValue, _, err := NewEvaluator(e.vm, []*Token{tSource}).Eval(true)
+		if err != nil {
+			return nil, e.error("could not get value for source to merge")
+		}
+
 		switch tOp.Type {
 		case tOP:
 			switch tOp.String() {
@@ -32,7 +36,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("could not append nil value")
 				}
 
-				tDest := NewToken(tSTRING, tSource.String())
+				tDest := NewToken(tSTRING, tSourceValue.String())
 				tDest.Data += tValue.String()
 				e.vm.Log("append: %v", *tDest)
 				return e.mergeValue(tDest)
@@ -43,7 +47,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("error getting value to sum: %v", err)
 				}
 
-				tDest := NewToken(tNUMBER, tSource.Float64() + tValue.Float64())
+				tDest := NewToken(tNUMBER, tSourceValue.Float64() + tValue.Float64())
 				e.vm.Log("sum: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "-":
@@ -53,7 +57,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("error getting value to subtract: %v", err)
 				}
 
-				tDest := NewToken(tNUMBER, tSource.Float64() - tValue.Float64())
+				tDest := NewToken(tNUMBER, tSourceValue.Float64() - tValue.Float64())
 				e.vm.Log("subtract: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "*":
@@ -63,7 +67,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("error getting value to multiply: %v", err)
 				}
 
-				tDest := NewToken(tNUMBER, tSource.Float64() * tValue.Float64())
+				tDest := NewToken(tNUMBER, tSourceValue.Float64() * tValue.Float64())
 				e.vm.Log("multiply: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "/":
@@ -73,7 +77,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("error getting value to divide: %v", err)
 				}
 
-				tDest := NewToken(tNUMBER, tSource.Float64() / tValue.Float64())
+				tDest := NewToken(tNUMBER, tSourceValue.Float64() / tValue.Float64())
 				e.vm.Log("divide: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "<":
@@ -83,7 +87,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("error getting value to compare less than: %v", err)
 				}
 
-				tDest := NewToken(tBOOLEAN, !(tSource.Float64() < tValue.Float64()))
+				tDest := NewToken(tBOOLEAN, tSourceValue.Float64() < tValue.Float64())
 				e.vm.Log("less than: %v", *tDest)
 				return e.mergeValue(tDest)
 			case ">":
@@ -93,7 +97,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("error getting value to compare greater than: %v", err)
 				}
 
-				tDest := NewToken(tBOOLEAN, !(tSource.Float64() > tValue.Float64()))
+				tDest := NewToken(tBOOLEAN, tSourceValue.Float64() > tValue.Float64())
 				e.vm.Log("greater than: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "=":
@@ -103,7 +107,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("error getting value to compare equals: %v", err)
 				}
 
-				tDest := NewToken(tBOOLEAN, !(tSource.String() == tValue.String()))
+				tDest := NewToken(tBOOLEAN, tSourceValue.String() == tValue.String())
 				e.vm.Log("equals: %v", *tDest)
 				return e.mergeValue(tDest)
 			default:
@@ -117,7 +121,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 				return nil, e.error("error getting value to compare bool: %v", err)
 			}
 
-			tDest := NewToken(tBOOLEAN, tSource.Bool() && tValue.Bool())
+			tDest := NewToken(tBOOLEAN, tSourceValue.Bool() && tValue.Bool())
 			e.vm.Log("compare bool: %v", *tDest)
 			return e.mergeValue(tDest)
 		case tOR:
@@ -127,7 +131,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 				return nil, e.error("error getting value to or bool: %v", err)
 			}
 
-			tDest := NewToken(tBOOLEAN, tSource.Bool() || tValue.Bool())
+			tDest := NewToken(tBOOLEAN, tSourceValue.Bool() || tValue.Bool())
 			e.vm.Log("or bool: %v", *tDest)
 			return e.mergeValue(tDest)
 		case tEOL, tBLOCKEND, tSEPARATOR, tTHEN:
