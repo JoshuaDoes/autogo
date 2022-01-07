@@ -66,7 +66,7 @@ func (t *Token) String() string {
 	}
 	switch t.Type {
 	case tBINARY:
-		return string(t.Bytes())
+		return "0x"+t.Data
 	}
 	return t.Data
 }
