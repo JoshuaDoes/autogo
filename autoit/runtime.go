@@ -359,5 +359,5 @@ func (vm *AutoItVM) AddHandle(value interface{}) string {
 }
 //DestroyHandle destroys the given handle id
 func (vm *AutoItVM) DestroyHandle(handleId string) {
-	vm.handles[handleId] = nil
+	delete(vm.handles, handleId)
 }

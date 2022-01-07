@@ -120,15 +120,28 @@ func (l *Lexer) ReadToken() (*Token, error) {
 			token.Type = tOP
 
 			rEquals, err := l.ReadRune()
-			if err == nil && rEquals == '=' {
-				token.Data += "="
+			if err == nil {
+				if rEquals == '=' {
+					token.Data += "="
+				} else if r == '-' && unicode.IsDigit(rEquals) {
+					token.Type = tILLEGAL
+
+					l.Move(-2)
+					tmpNumber, err := l.ReadNumber()
+					if err == nil {
+						token.Type = tNUMBER
+						token.Data = tmpNumber
+					} else {
+						fmt.Println(err)
+					}
+				}
 			} else {
 				l.Move(-1)
 			}
 		default:
-			if unicode.IsDigit(r) {
+			if r == '-' || unicode.IsDigit(r) || token.Type == tNUMBER {
 				rX, err := l.ReadRune()
-				if err == nil && r == '0' && (rX == 'x' || rX == 'X') {
+				if err == nil && r == '0' && (rX == 'x' || rX == 'X') && token.Type != tNUMBER {
 					tmpBinary, err := l.ReadBinary()
 					if err == nil {
 						token.Type = tBINARY
@@ -268,9 +281,16 @@ func (l *Lexer) ReadNumber() (string, error) {
 		if err == io.EOF {
 			break
 		}
+		if r == '-' && read == "" {
+			read = "-" //Negative numbers!
+			continue
+		}
 		if r == '.' {
 			if readDeci {
 				return "", fmt.Errorf("two decimal places in number")
+			}
+			if read == "" {
+				read = "0"
 			}
 			read += "."
 			readDeci = true

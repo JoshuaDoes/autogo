@@ -24,6 +24,18 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 			return nil, err
 		}
 		return e.mergeValue(tDest)
+	case tNOT:
+		e.vm.Log("not: %v", *tSource)
+		tBool, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+		e.move(tRead)
+		if err != nil {
+			return nil, err
+		}
+		tDest, err := e.mergeValue(tBool)
+		if err != nil {
+			return nil, err
+		}
+		return NewToken(tBOOLEAN, !tDest.Bool()), nil
 	}
 
 	tOp := e.readToken()
@@ -37,7 +49,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 		case tOP:
 			switch tOp.String() {
 			case "&":
-				tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
+				tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
 				e.move(tRead)
 				if err != nil {
 					return nil, e.error("could not append value: %v", err)
@@ -51,7 +63,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 				e.vm.Log("append: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "+":
-				tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
+				tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
 				e.move(tRead)
 				if err != nil {
 					return nil, e.error("error getting value to sum: %v", err)
@@ -61,7 +73,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 				e.vm.Log("sum: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "-":
-				tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
+				tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
 				e.move(tRead)
 				if err != nil {
 					return nil, e.error("error getting value to subtract: %v", err)
@@ -71,7 +83,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 				e.vm.Log("subtract: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "*":
-				tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
+				tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
 				e.move(tRead)
 				if err != nil {
 					return nil, e.error("error getting value to multiply: %v", err)
@@ -81,7 +93,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 				e.vm.Log("multiply: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "/":
-				tValue, tRead, err := NewEvaluator(e.vm, []*Token{e.tokens[e.pos]}).Eval(true)
+				tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
 				e.move(tRead)
 				if err != nil {
 					return nil, e.error("error getting value to divide: %v", err)
@@ -172,7 +184,7 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		}
 		*/
 		return nil, e.pos, e.error("block not implemented")
-	case tSTRING, tNUMBER, tBOOLEAN, tBINARY, tMACRO, tHANDLE:
+	case tSTRING, tNUMBER, tBOOLEAN, tNOT, tBINARY, tMACRO, tHANDLE:
 		if !expectValue {
 			return nil, e.pos, e.error("unexpected value")
 		}
@@ -182,21 +194,6 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return nil, e.pos, err
 		}
 		return tValue, e.pos, nil
-	case tNOT:
-		if !expectValue {
-			return nil, e.pos, e.error("unexpected not bool")
-		}
-
-		tBool := e.readToken()
-		if tBool == nil {
-			return nil, e.pos, e.error("expected bool for not")
-		}
-
-		tValue, err := e.mergeValue(tBool)
-		if err != nil {
-			return nil, e.pos, err
-		}
-		return NewToken(tBOOLEAN, !tValue.Bool()), e.pos, nil
 	case tIF, tELSEIF:
 		if expectValue {
 			return nil, e.pos, e.error("illegal if condition when expecting value")
@@ -363,6 +360,9 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return nil, e.pos, vmIfErr
 		}
 
+		return nil, e.pos, nil
+	case tTHEN:
+		e.move(-1)
 		return nil, e.pos, nil
 	case tIFEND:
 		e.vm.ranIfStatement = false
@@ -633,17 +633,17 @@ func (e *Evaluator) readBlock() ([]*Token, error) {
 
 		switch token.Type {
 		case tBLOCK:
+			if depth > 0 {
+				block = append(block, token)
+			}
 			depth++
-			if depth > 1 {
-				block = append(block, token)
-			}
-			e.vm.Log("BLOCK %d", depth)
+			e.vm.Log("BLOCK+ %d", depth)
 		case tBLOCKEND:
-			depth--
-			if depth > 1 {
+			if depth > 0 {
 				block = append(block, token)
 			}
-			e.vm.Log("BLOCK %d", depth)
+			depth--
+			e.vm.Log("BLOCK- %d", depth)
 		case tEOL:
 			if depth > 0 {
 				for i := 0; i < depth; i++ {
@@ -658,13 +658,14 @@ func (e *Evaluator) readBlock() ([]*Token, error) {
 			block = append(block, token)
 			e.vm.Log("BLOCK FOUND SEPARATOR")
 		default:
-			if depth == 0 {
+			e.vm.Log("BLOCK DEPTH: %d", depth)
+			if depth <= 0 {
 				e.move(-1)
 				return block, nil
 			}
 
 			tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos-1:]).Eval(true)
-			e.move(tRead)
+			e.move(tRead-1)
 			if err != nil {
 				e.vm.Log("BLOCK %d ERR: %v, %v", depth, *token, err)
 				e.move(-1)
@@ -694,21 +695,21 @@ func (e *Evaluator) evalBlock(block []*Token) []*Token {
 		e.vm.Log("------- %d EVALUATING %v", depth, *block[i])
 		switch block[i].Type {
 		case tBLOCK:
+			if depth > 0 {
+				section = append(section, block[i])
+				e.vm.Log("evalBlock %d: appending section with %v", depth, *block[i])
+			}
 			depth++
 			e.vm.Log("depth: %v", depth)
+		case tBLOCKEND:
 			if depth > 0 {
 				section = append(section, block[i])
 				e.vm.Log("evalBlock %d: appending section with %v", depth, *block[i])
 			}
-		case tBLOCKEND:
 			depth--
 			e.vm.Log("depth: %v", depth)
-			if depth > 0 {
-				section = append(section, block[i])
-				e.vm.Log("evalBlock %d: appending section with %v", depth, *block[i])
-			}
 		case tSEPARATOR:
-			e.vm.Log("evalBlock %d: ,")
+			e.vm.Log("evalBlock %d: ,", depth)
 			tValue, _, err := NewEvaluator(e.vm, section).Eval(true)
 			if err != nil {
 				e.vm.Log("evalBlock %d: eval error: %v", depth, err)

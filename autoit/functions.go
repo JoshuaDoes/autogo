@@ -115,13 +115,39 @@ var (
 				return NewToken(tSTRING, directory), nil
 			},
 		},*/
+		"fileclose": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "filehandle"},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				file := vm.GetHandle(args["filehandle"].String())
+				if file == nil {
+					return NewToken(tNUMBER, 0), nil
+				}
+				file.(*os.File).Close()
+				vm.DestroyHandle(args["filehandle"].String())
+				return NewToken(tNUMBER, 1), nil
+			},
+		},
+		"filedelete": &Function{
+			Args: []*FunctionArg{
+				&FunctionArg{Name: "filename"},
+			},
+			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
+				err := os.Remove(args["filename"].String())
+				if err != nil {
+					return NewToken(tNUMBER, 0), nil
+				}
+				return NewToken(tNUMBER, 1), nil
+			},
+		},
 		"fileopen": &Function{
 			Args: []*FunctionArg{
 				&FunctionArg{Name: "filename"},
 				&FunctionArg{Name: "mode", DefaultValue: NewToken(tNUMBER, 0)},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				file, err := os.Open(args["filename"].String())
+				file, err := os.OpenFile(args["filename"].String(), os.O_RDWR|os.O_APPEND, 0666)
 				if err != nil {
 					return NewToken(tNUMBER, -1), nil
 				}
@@ -185,11 +211,33 @@ var (
 				&FunctionArg{Name: "data"},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				err := os.WriteFile(args["file"].String(), args["data"].Bytes(), 0666)
-				if err != nil {
-					return NewToken(tNUMBER, 0), err
+				file := &os.File{}
+				close := false
+
+				if args["file"].Type == tHANDLE {
+					file = vm.GetHandle(args["file"].String()).(*os.File)
+					if file == nil {
+						vm.SetError(1)
+						return NewToken(tNUMBER, 0), nil
+					}
+				} else {
+					openFile, err := os.OpenFile(args["file"].String(), os.O_CREATE, 0666)
+					if err != nil {
+						vm.SetError(1)
+						return NewToken(tNUMBER, 0), nil
+					}
+					file = openFile
+					close = true
 				}
-				return NewToken(tNUMBER, "1"), nil
+
+				_, err := file.Write(args["data"].Bytes())
+				if close {
+					file.Close()
+				}
+				if err != nil {
+					return NewToken(tNUMBER, 0), nil
+				}
+				return NewToken(tNUMBER, 1), nil
 			},
 		},
 		"inetread": &Function{
@@ -222,7 +270,7 @@ var (
 				switch args["flag"].Int() {
 				case 0: //$MB_OK
 					dialog.Message("%s", args["text"].String()).Title(args["title"].String()).Info()
-					return NewToken(tNUMBER, "1"), nil //$IDOK
+					return NewToken(tNUMBER, 1), nil //$IDOK
 				case 4: //$MB_YESNO
 					yesno := dialog.Message("%s", args["text"].String()).Title(args["title"].String()).YesNo()
 					if yesno {
@@ -231,7 +279,7 @@ var (
 					return NewToken(tNUMBER, "7"), nil //$IDNO
 				case 16: //$MB_ICONERROR
 					dialog.Message("%s", args["text"].String()).Title(args["title"].String()).Error()
-					return NewToken(tNUMBER, "1"), nil //$IDOK
+					return NewToken(tNUMBER, 1), nil //$IDOK
 				}
 				return nil, nil
 			},
