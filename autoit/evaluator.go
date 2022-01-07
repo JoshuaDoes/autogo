@@ -544,38 +544,63 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			return tValue, e.pos, nil
 		}
 
-		tOp := e.readToken()
-		if tOp == nil {
-			e.move(-1)
-			return e.vm.GetVariable(tEval.String()), e.pos, nil
-		}
+		e.move(-1)
+		for {
+			tVariable := e.readToken()
+			if tVariable == nil {
+				return nil, e.pos, e.error("expected variable declaration, instead got: %v", *tVariable)
+			}
+			if tVariable.Type == tEOL {
+				e.move(-1)
+				return nil, e.pos, nil
+			}
+			if tVariable.Type == tSEPARATOR {
+				continue
+			}
+			e.vm.Log("tVariable: %v", *tVariable)
 
-		switch tOp.Type {
-		case tOP:
-			switch tOp.String() {
-			case "=":
-				if expectValue {
-					return nil, e.pos, e.error("illegal variable declaration when expecting value")
+			tOp := e.readToken()
+			if tOp == nil {
+				e.move(-1)
+				e.vm.SetVariable(tVariable.String(), NewToken(tSTRING, ""))
+				e.vm.Log("$%s = \"\"", tVariable.String())
+				return nil, e.pos, nil
+			}
+			e.vm.Log("tOp: %v", *tOp)
+
+			switch tOp.Type {
+			case tOP:
+				switch tOp.String() {
+				case "=":
+					if expectValue {
+						return nil, e.pos, e.error("illegal variable declaration when expecting value")
+					}
+
+					tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
+					e.move(tRead)
+					if err != nil {
+						return nil, e.pos+tRead, e.error("error getting value for variable declaration of $%s: %v", tVariable.String(), err)
+					}
+
+					e.vm.SetVariable(tVariable.String(), tValue)
+					e.vm.Log("$%s = %v:%v", tVariable.String(), *e.tokens[e.pos], *tValue)
+					continue
+				default:
+					e.move(-1)
+					return nil, e.pos, e.error("illegal operator following variable$%s: %s", tVariable.String(), tOp.String())
 				}
-
-				tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
-				if err != nil {
-					return nil, e.pos+tRead, e.error("error getting value for variable declaration: %v", err)
-				}
-
-				e.vm.SetVariable(tEval.String(), tValue)
-				e.vm.Log("$%s = %v:%v", tEval.String(), *e.tokens[e.pos], *tValue)
-				return nil, e.pos+tRead, nil
+			case tSEPARATOR:
+				e.vm.SetVariable(tVariable.String(), NewToken(tSTRING, ""))
+				continue
+			case tEOL, tBLOCKEND:
+				e.move(-1)
+				e.vm.SetVariable(tVariable.String(), NewToken(tSTRING, ""))
+				e.vm.Log("$%s = \"\"", tVariable.String())
+				return nil, e.pos, nil
 			default:
 				e.move(-1)
-				return nil, e.pos, e.error("illegal operator following variable: %s", tOp.String())
+				return nil, e.pos, e.error("illegal token following variable $%s: %v", tVariable.String(), *tOp)
 			}
-		case tEOL, tBLOCKEND:
-			e.move(-1)
-			return e.vm.GetVariable(tEval.String()), e.pos, nil //Return the evaluated value
-		default:
-			e.move(-1)
-			return nil, e.pos, e.error("illegal token following variable: %v", *tOp)
 		}
 	case tCALL:
 		callTokens, err := e.readBlock()

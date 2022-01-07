@@ -7,6 +7,9 @@ Func ConsoleWriteLn($sMsg = "")
 	Return SetError(1, 0, 1) ;Make useful for exit
 EndFunc
 
-$dBin = Binary("abc")
-$sString = String($dBin)
-ConsoleWriteLn($sString)
+;#Debug
+Local $var, $var2 = "line 2", $var3, $var4 = "line 4"
+ConsoleWriteLn($var)
+ConsoleWriteLn($var2)
+ConsoleWriteLn($var3)
+ConsoleWriteLn($var4)
