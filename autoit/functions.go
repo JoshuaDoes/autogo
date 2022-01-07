@@ -221,7 +221,7 @@ var (
 						return NewToken(tNUMBER, 0), nil
 					}
 				} else {
-					openFile, err := os.OpenFile(args["file"].String(), os.O_CREATE, 0666)
+					openFile, err := os.OpenFile(args["file"].String(), os.O_RDWR|os.O_CREATE, 0666)
 					if err != nil {
 						vm.SetError(1)
 						return NewToken(tNUMBER, 0), nil
