@@ -1,6 +1,6 @@
-github.com/JoshuaDoes/autogo/autoit v0.0.0-20220103072316-d8f923f153c1 h1:zK57BPEWS8cPD9KEWamQq/Vwy+FAVQiXVWhOAU6LJP4=
-github.com/JoshuaDoes/autogo/autoit v0.0.0-20220103072316-d8f923f153c1/go.mod h1:r5++u9MMD9YeNuJriMGTtaQWtrnmz7IjrwYxQ5OhAwY=
-github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf h1:FPsprx82rdrX2jiKyS17BH6IrTmUBYqZa/CXT4uvb+I=
+github.com/JoshuaDoes/autogo/autoit v0.0.0-20220106072021-d9c29d967152 h1:7CQ+e8Q4sL+ik15R+hVPvgljuO0NlIeCioCDf/aghBw=
+github.com/JoshuaDoes/autogo/autoit v0.0.0-20220106072021-d9c29d967152/go.mod h1:r5++u9MMD9YeNuJriMGTtaQWtrnmz7IjrwYxQ5OhAwY=
 github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf/go.mod h1:peYoMncQljjNS6tZwI9WVyQB3qZS6u79/N3mBOcnd3I=
-github.com/sqweek/dialog v0.0.0-20211002065838-9a201b55ab91 h1:Ap4SC7+bIAFzh81vREQSElqYUtuxPgknVl1ol5rOf9w=
+github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
+github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/sqweek/dialog v0.0.0-20211002065838-9a201b55ab91/go.mod h1:/qNPSY91qTz/8TgHEMioAUc6q7+3SOybeKczHMXFcXw=
