@@ -149,6 +149,7 @@ func (vm *AutoItVM) Step() error {
 		}
 		vm.SetReturnValue(tValue)
 		vm.Stop()
+		return nil
 	case tFLAG:
 		switch strings.ToLower(token.String()) {
 		case "include":
@@ -351,13 +352,20 @@ func (vm *AutoItVM) GetHandle(handleId string) interface{} {
 	}
 	return nil
 }
-//AddHandle creates a handle from the given token and returns the handle id
-func (vm *AutoItVM) AddHandle(value interface{}) string {
+//AddHandle creates a handle from the given token and returns the handle as a token
+func (vm *AutoItVM) AddHandle(value interface{}) *Token {
 	handleId := uuid.NewString()
 	vm.handles[handleId] = value
-	return handleId
+	return NewToken(tHANDLE, handleId)
 }
 //DestroyHandle destroys the given handle id
 func (vm *AutoItVM) DestroyHandle(handleId string) {
 	delete(vm.handles, handleId)
+}
+
+func (vm *AutoItVM) MapGet(handleId, key string) *Token {
+	return vm.handles[handleId].(map[string]*Token)[key]
+}
+func (vm *AutoItVM) MapSet(handleId, key string, value *Token) {
+	vm.handles[handleId].(map[string]*Token)[key] = value
 }

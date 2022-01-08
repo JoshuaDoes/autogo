@@ -76,7 +76,7 @@ func (vm *AutoItVM) PreprocessFunc() (string, *Function, error) {
 	}
 
 	tBlock := vm.ReadToken()
-	if tBlock.Type != tBLOCK {
+	if tBlock.Type != tLEFTPAREN {
 		return "", nil, vm.Error("preprocessor: expected block after func call, instead got: %v", tBlock)
 	}
 
@@ -85,7 +85,7 @@ func (vm *AutoItVM) PreprocessFunc() (string, *Function, error) {
 		funcArg := &FunctionArg{}
 
 		tVar := vm.ReadToken()
-		if tVar == nil || tVar.Type == tBLOCKEND {
+		if tVar == nil || tVar.Type == tRIGHTPAREN || tVar.Type == tEOL {
 			break
 		}
 		if tVar.Type != tVARIABLE {
@@ -98,7 +98,7 @@ func (vm *AutoItVM) PreprocessFunc() (string, *Function, error) {
 		case tSEPARATOR:
 			funcArgs = append(funcArgs, funcArg)
 			continue
-		case tBLOCKEND:
+		case tRIGHTPAREN:
 			funcArgs = append(funcArgs, funcArg)
 			break
 		case tOP:

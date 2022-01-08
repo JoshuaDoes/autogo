@@ -1,2 +1,3 @@
 export GO111MODULE=off
-cd .. && go build -ldflags="-s -w" -o example/autogo && cd example && ./autogo "$@"
+export AUTOGOEX=$PWD
+cd ..\cmd\autogo && go build -ldflags="-s -w" -o $AUTOGOEX/autogo && cd $AUTOGOEX && ./autogo "$@"

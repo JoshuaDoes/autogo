@@ -18,7 +18,7 @@ Enter winelib. Or at least, when I get around to it. For the time being I'll use
 Because I made the decision to write AutoGo as a package at heart instead of just a program, there are three ways to use it: Installing the runtime, then either executing it with .au3 script files or executing it in interactive mode, or importing the package and spawning an unlimited number of interactable AutoIt VMs that can evaluate any given script block.
 
 ### Installing the runtime to your GOBIN directory
-`go install github.com/JoshuaDoes/autogo`
+`go install github.com/JoshuaDoes/autogo/cmd/autogo`
 
 ### Executing an AutoIt script
 `autogo "Hello World.au3"`

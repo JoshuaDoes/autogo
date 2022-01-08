@@ -8,8 +8,9 @@ Func ConsoleWriteLn($sMsg = "")
 EndFunc
 
 ;#Debug
-Local $var, $var2 = "line 2", $var3, $var4 = "line 4"
-ConsoleWriteLn($var)
-ConsoleWriteLn($var2)
-ConsoleWriteLn($var3)
-ConsoleWriteLn($var4)
+ConsoleWriteLn("hey there")
+
+Local $mVar[]
+$mVar["asdf"] = "data"
+$data = $mVar["asdf"]
+ConsoleWriteLn($data)

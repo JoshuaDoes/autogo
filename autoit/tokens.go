@@ -67,6 +67,8 @@ func (t *Token) String() string {
 	switch t.Type {
 	case tBINARY:
 		return "0x"+t.Data
+	case tHANDLE:
+		return ""
 	}
 	return t.Data
 }
@@ -129,6 +131,16 @@ func (t *Token) Bytes() []byte {
 	}
 	return []byte(t.Data)
 }
+func (t *Token) Handle() string {
+	if t.IsEmpty() {
+		return ""
+	}
+	switch t.Type {
+	case tHANDLE:
+		return t.Data
+	}
+	return ""
+}
 
 type TokenType string
 const (
@@ -142,10 +154,10 @@ const (
 	tMACRO TokenType = "MACRO"
 	tCOMMENT TokenType = "COMMENT"
 	tVARIABLE TokenType = "VARIABLE"
-	tBLOCK TokenType = "BLOCK"
-	tBLOCKEND TokenType = "BLOCKEND"
-	tMAP TokenType = "MAP"
-	tMAPEND TokenType = "MAPEND"
+	tLEFTPAREN TokenType = "LEFTPAREN"
+	tRIGHTPAREN TokenType = "RIGHTPAREN"
+	tLEFTBRACK TokenType = "LEFTBRACK"
+	tRIGHTBRACK TokenType = "RIGHTBRACK"
 	tSEPARATOR TokenType = "SEPARATOR"
 	tOP TokenType = "OP"
 	tEXIT TokenType = "EXIT"
@@ -190,5 +202,7 @@ const (
 	tVOLATILE TokenType = "VOLATILE"
 
 	//Tokens used by runtime
-	tHANDLE TokenType = "HANDLE" //Stores a handle id
+	tHANDLE TokenType = "HANDLE" //Stores a string holding a handle id
+	tMAP TokenType = "MAP" //Stores a handle to map[string]*Token
+	tARRAY TokenType = "ARRAY" //Stores a handle to []*Token
 )

@@ -120,12 +120,12 @@ var (
 				&FunctionArg{Name: "filehandle"},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				file := vm.GetHandle(args["filehandle"].String())
+				file := vm.GetHandle(args["filehandle"].Handle())
 				if file == nil {
 					return NewToken(tNUMBER, 0), nil
 				}
 				file.(*os.File).Close()
-				vm.DestroyHandle(args["filehandle"].String())
+				vm.DestroyHandle(args["filehandle"].Handle())
 				return NewToken(tNUMBER, 1), nil
 			},
 		},
@@ -151,8 +151,8 @@ var (
 				if err != nil {
 					return NewToken(tNUMBER, -1), nil
 				}
-				handleId := vm.AddHandle(file)
-				return NewToken(tHANDLE, handleId), nil
+				handle := vm.AddHandle(file)
+				return handle, nil
 			},
 		},
 		"fileread": &Function{
@@ -165,7 +165,7 @@ var (
 				close := false
 
 				if args["file"].Type == tHANDLE {
-					file = vm.GetHandle(args["file"].String()).(*os.File)
+					file = vm.GetHandle(args["file"].Handle()).(*os.File)
 					if file == nil {
 						vm.SetError(1)
 						return NewToken(tSTRING, ""), nil
@@ -215,7 +215,7 @@ var (
 				close := false
 
 				if args["file"].Type == tHANDLE {
-					file = vm.GetHandle(args["file"].String()).(*os.File)
+					file = vm.GetHandle(args["file"].Handle()).(*os.File)
 					if file == nil {
 						vm.SetError(1)
 						return NewToken(tNUMBER, 0), nil
@@ -330,7 +330,7 @@ var (
 				&FunctionArg{Name: "expression"},
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				return NewToken(tSTRING, args["expression"].String()), nil
+				return NewToken(tSTRING, string(args["expression"].Bytes())), nil
 			},
 		},
 		"timerdiff": &Function{

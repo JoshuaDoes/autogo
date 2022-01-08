@@ -57,6 +57,7 @@ func (l *Lexer) ReadToken() (*Token, error) {
 			return nil, err
 		}
 		token.Data = string(r)
+		//fmt.Println("lexer:", token.Data)
 
 		switch r {
 		case ' ':
@@ -107,13 +108,13 @@ func (l *Lexer) ReadToken() (*Token, error) {
 			token.Type = tVARIABLE
 			token.Data = l.ReadIdent()
 		case '(':
-			token.Type = tBLOCK
+			token.Type = tLEFTPAREN
 		case ')':
-			token.Type = tBLOCKEND
+			token.Type = tRIGHTPAREN
 		case '[':
-			token.Type = tMAP
+			token.Type = tLEFTBRACK
 		case ']':
-			token.Type = tMAPEND
+			token.Type = tRIGHTBRACK
 		case ',':
 			token.Type = tSEPARATOR
 		case '=', '&', '+', '-', '*', '/', '<', '>':
@@ -132,11 +133,9 @@ func (l *Lexer) ReadToken() (*Token, error) {
 						token.Type = tNUMBER
 						token.Data = tmpNumber
 					} else {
-						fmt.Println(err)
+						//fmt.Println(err)
 					}
 				}
-			} else {
-				l.Move(-1)
 			}
 		default:
 			if r == '-' || unicode.IsDigit(r) || token.Type == tNUMBER {
