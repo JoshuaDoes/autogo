@@ -20,6 +20,7 @@ type AutoItVM struct {
 	tokens []*Token
 	funcs map[string]*Function
 	pos int
+	preprocessed bool
 
 	//Runtime and memory
 	running bool
@@ -57,6 +58,7 @@ func NewAutoItScriptVM(scriptPath string, script []byte, parentScope *AutoItVM) 
 		vars: make(map[string]*Token),
 		handles: make(map[string]interface{}, 0),
 		returnValue: NewToken(tNUMBER, 0),
+		//Logger: true,
 	}, nil
 }
 
@@ -82,9 +84,12 @@ func (vm *AutoItVM) Run() error {
 		return nil
 	}
 
-	preprocess := vm.Preprocess()
-	if preprocess != nil {
-		return preprocess
+	if !vm.preprocessed {
+		preprocess := vm.Preprocess()
+		if preprocess != nil {
+			return preprocess
+		}
+		vm.preprocessed = true
 	}
 
 	vm.running = true
@@ -131,7 +136,7 @@ func (vm *AutoItVM) Step() error {
 		if vm.exitMethod == "" {
 			os.Exit(vm.exitCode)
 		}
-		vm.HandleFunc(vm.exitMethod, nil)
+		vm.HandleCall(&FunctionCall{Name: vm.exitMethod})
 	case tSCOPE, tVARIABLE, tCALL, tFUNC, tIF, tELSE, tELSEIF, tIFEND, tCASE, tSWITCH, tSWITCHEND:
 		vm.Move(-1)
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
@@ -153,28 +158,7 @@ func (vm *AutoItVM) Step() error {
 	case tFLAG:
 		switch strings.ToLower(token.String()) {
 		case "include":
-			includeFile := vm.ReadToken()
-			if includeFile.Type != tSTRING {
-				return vm.Error("expected string containing path to include")
-			}
-			vm.Log("INCLUDE %s", includeFile.String())
-
-			includeLexer, err := NewLexerFromFile(includeFile.String())
-			if err != nil {
-				return vm.Error("%v", err)
-			}
-			includeTokens, err := includeLexer.GetTokens()
-			if err != nil {
-				return vm.Error("%v", err)
-			}
-
-			tokens := make([]*Token, 0)
-			tokens = append(tokens, vm.tokens[:vm.pos]...)
-			tokens = append(tokens, &Token{Type: tEOL})
-			tokens = append(tokens, includeTokens...)
-			tokens = append(tokens, &Token{Type: tEOL})
-			tokens = append(tokens, vm.tokens[vm.pos:]...)
-			vm.tokens = tokens
+			return vm.Error("unexpected include attempt, did preprocessing fail?")
 		default:
 			tOp := vm.ReadToken()
 			switch tOp.Type {
@@ -232,10 +216,11 @@ func (vm *AutoItVM) Log(format string, params ...interface{}) {
 	if format[len(format)-1] != '\n' {
 		format += "\n"
 	}
+	time := fmt.Sprintf("%v", time.Now())
 	if params != nil {
-		fmt.Printf("vm: " + format, params...)
+		fmt.Printf("[" + time + "] vm: " + format, params...)
 	} else {
-		fmt.Printf("vm: " + format)
+		fmt.Printf("[" + time + "] vm: " + format)
 	}
 }
 func (vm *AutoItVM) Error(format string, params ...interface{}) error {
@@ -289,7 +274,7 @@ func (vm *AutoItVM) SetReturnValue(returnValue *Token) {
 	vm.returnValue = returnValue
 }
 
-func (vm *AutoItVM) ExtendVM(tokens []*Token) (*AutoItVM, error) {
+func (vm *AutoItVM) ExtendVM(tokens []*Token, preprocess bool) (*AutoItVM, error) {
 	vmPtr := *vm
 	vmNew := &vmPtr
 	vmNew.running = false
@@ -301,15 +286,24 @@ func (vm *AutoItVM) ExtendVM(tokens []*Token) (*AutoItVM, error) {
 	vmNew.ranIfStatement = false
 	vmNew.tokens = tokens
 	vmNew.parentScope = vm
-	return vmNew, vmNew.Preprocess()
+	if preprocess {
+		return vmNew, vmNew.Preprocess()
+	}
+	return vmNew, nil
 }
 
+//Tokens returns the full slice of tokens from the VM
 func (vm *AutoItVM) Tokens() []*Token {
 	return vm.tokens
 }
+//Token returns the token at the current position
 func (vm *AutoItVM) Token() *Token {
+	if vm.pos >= len(vm.tokens) {
+		return nil
+	}
 	return vm.tokens[vm.pos]
 }
+//ReadToken returns the token at the current position and moves the position forward by one
 func (vm *AutoItVM) ReadToken() *Token {
 	if vm.pos >= len(vm.tokens) {
 		return nil
@@ -317,8 +311,53 @@ func (vm *AutoItVM) ReadToken() *Token {
 	defer vm.Move(1)
 	return vm.tokens[vm.pos]
 }
-func (vm *AutoItVM) Move(pos int) {
-	vm.pos += pos
+//GetToken returns the token at the given position
+func (vm *AutoItVM) GetToken(pos int) *Token {
+	if pos >= len(vm.tokens) {
+		return nil
+	}
+	return vm.tokens[pos]
+}
+//SetToken sets the token at given position to the given token
+func (vm *AutoItVM) SetToken(pos int, token *Token) {
+	if pos >= len(vm.tokens) {
+		return
+	}
+	vm.tokens[pos] = token
+}
+//RemoveTokens removes the specified position ranges of tokens
+func (vm *AutoItVM) RemoveTokens(startPos, endPos int) {
+	if startPos >= endPos {
+		return
+	}
+
+	vm.Log("removing tokens %d to %d", startPos, endPos)
+	//vm.Log("old tokens: %v\n", vm.tokens)
+	//vm.Log("old pos: %d\n", vm.pos)
+	vm.tokens = append(vm.tokens[:startPos], vm.tokens[endPos:]...)
+	vm.Move(-1 * (endPos-startPos))
+	//vm.Log("new tokens: %v\n", vm.tokens)
+	//vm.Log("new pos: %d\n", vm.pos)
+}
+//RemoveToken removes the specified position from the tokens
+func (vm *AutoItVM) RemoveToken(pos int) {
+	if pos >= len(vm.tokens) {
+		return
+	}
+
+	vm.Log("removing token %d: %v", pos, vm.tokens[pos])
+	vm.tokens = append(vm.tokens[:pos], vm.tokens[pos:]...)
+}
+//GetPos returns the current position
+func (vm *AutoItVM) GetPos() int {
+	return vm.pos
+}
+//Move moves the position by the specified amount
+func (vm *AutoItVM) Move(direction int) {
+	vm.pos += direction
+	/*if vm.Token() != nil {
+		vm.Log("moved to: %d %v", vm.pos, vm.Token())
+	}*/
 }
 
 //GetVariable returns the token for the specified variable or nil if it doesn't exist

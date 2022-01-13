@@ -46,8 +46,6 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 		}
 		e.vm.Log("got value for $%s: %v", tSource.String(), *tDest)
 		return e.mergeValue(tDest)
-	default:
-		e.vm.Log("expecting op after merge source: %v", *tSource)
 	}
 
 	tOp := e.readToken()
@@ -293,10 +291,10 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			}
 			e.vm.ranIfStatement = true
 
-			vmIf, preprocess := e.vm.ExtendVM(blockIf)
-			if preprocess != nil {
+			vmIf, _ := e.vm.ExtendVM(blockIf, false)
+			/*if preprocess != nil {
 				return nil, e.pos, preprocess
-			}
+			}*/
 			vmIfErr := vmIf.Run()
 			if vmIfErr != nil {
 				return nil, e.pos, vmIfErr
@@ -374,10 +372,10 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		}
 		e.vm.ranIfStatement = true
 
-		vmIf, preprocess := e.vm.ExtendVM(blockIf)
-		if preprocess != nil {
+		vmIf, _ := e.vm.ExtendVM(blockIf, false)
+		/*if preprocess != nil {
 			return nil, e.pos, preprocess
-		}
+		}*/
 		vmIfErr := vmIf.Run()
 		if vmIfErr != nil {
 			return nil, e.pos, vmIfErr
@@ -508,10 +506,10 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 
 		e.vm.Log("Final switch block: %v", blockSwitch)
 
-		vmSwitch, preprocess := e.vm.ExtendVM(blockSwitch)
-		if preprocess != nil {
+		vmSwitch, _ := e.vm.ExtendVM(blockSwitch, false)
+		/*if preprocess != nil {
 			return nil, e.pos, preprocess
-		}
+		}*/
 		vmSwitchErr := vmSwitch.Run()
 		if vmSwitchErr != nil {
 			return nil, e.pos, vmSwitchErr
@@ -686,24 +684,11 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 			}
 		}
 	case tCALL:
-		callTokens, err := e.readBlock(tLEFTPAREN, tRIGHTPAREN)
-		if err != nil {
-			return nil, e.pos, err
+		functionCall := e.vm.GetHandle(tEval.String())
+		if functionCall == nil {
+			return nil, e.pos, e.error("undefined call attempt, did preprocessing fail?: %v", *tEval)
 		}
-		if callTokens == nil {
-			if !expectValue {
-				return nil, e.pos, e.error("call requires parameter block")
-			}
-			return tEval, e.pos, nil //Return a pointer to the call rather than evaluating its value
-		}
-		callParams := e.evalBlock(callTokens)
-		if len(callParams) > 1 {
-			if callParams[len(callParams)-1] == nil || callParams[len(callParams)-1].Type == tRIGHTPAREN {
-				callParams = callParams[:len(callParams)-1] //Strip leftover BLOCKEND from somewhere, TODO: find it
-			}
-		}
-
-		tValue, err := e.vm.HandleFunc(tEval.String(), callParams)
+		tValue, err := e.vm.HandleCall(functionCall.(*FunctionCall))
 		if err != nil {
 			return nil, e.pos, err
 		}
@@ -722,8 +707,8 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 
 	return nil, e.pos, e.error("reached end of eval attempts for token: %v", *tEval)
 }
-func (e *Evaluator) move(pos int) {
-	e.pos += pos
+func (e *Evaluator) move(direction int) {
+	e.pos += direction
 }
 func (e *Evaluator) readToken() *Token {
 	if e.pos >= len(e.tokens) {

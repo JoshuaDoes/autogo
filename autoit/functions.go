@@ -339,7 +339,7 @@ var (
 			},
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 				now := time.Now()
-				then := time.Unix(0, args["handle"].Int64())
+				then := vm.GetHandle(args["handle"].Handle()).(time.Time)
 				diff := now.Sub(then)
 				vm.Log("timerdiff: then(%s) now(%s) diff(%s)", then, now, diff)
 				return NewToken(tNUMBER, float64(diff.Nanoseconds()) / 1000000), nil
@@ -347,60 +347,56 @@ var (
 		},
 		"timerinit": &Function{
 			Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
-				return NewToken(tNUMBER, float64(time.Now().UnixNano())), nil
+				return vm.AddHandle(time.Now()), nil
 			},
 		},
-		/*"consolewriteline": &Function{
-			Args: []*FunctionArg{
-				&FunctionArg{Name: "sMsg"},
-			},
-			Block: []*Token{
-				NewToken(tCALL, "ConsoleWrite"),
-				NewToken(tBLOCK, ""),
-				NewToken(tVARIABLE, "sMsg"),
-				NewToken(tOP, "&"),
-				NewToken(tMACRO, "CRLF"),
-				NewToken(tBLOCKEND, ""),
-			},
-		},*/
 	}
 )
 
+//Function holds an AutoIt function
 type Function struct {
 	Args []*FunctionArg                                     //Ordered list of arguments for calls
 	Func func(*AutoItVM, map[string]*Token) (*Token, error) //Stores a Go func binding for calls
 	Block []*Token                                          //Stores a token block to step on calls
 }
 
+//FunctionArg holds an AutoIt function argument
 type FunctionArg struct {
-	Name string         //Accessed by function block as $Name
-	DefaultValue *Token //leave nil to require
+	Name string         //Accessed by Function.Block as $Name
+	DefaultValue *Token //Leave nil to require a value to be set by the caller 
 }
 
-func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
-	function, exists := vm.funcs[strings.ToLower(funcName)]
+//FunctionCall holds an AutoIt function call
+type FunctionCall struct {
+	Name string      //Name of the function to call
+	Block [][]*Token //List of token blocks to evaluate each argument for the function call
+}
+
+func (vm *AutoItVM) HandleCall(fc *FunctionCall) (*Token, error) {
+	function, exists := vm.funcs[strings.ToLower(fc.Name)]
 	if !exists {
-		function, exists = stdFunctions[strings.ToLower(funcName)]
+		function, exists = stdFunctions[strings.ToLower(fc.Name)]
 		if !exists {
-			return nil, vm.Error("undefined function %s", funcName)
+			return nil, vm.Error("undefined function %s", fc.Name)
 		}
 	}
 
-	if args == nil {
-		args = make([]*Token, 0)
+	if fc.Block == nil {
+		fc.Block = make([][]*Token, 0)
 	}
-	if len(args) > len(function.Args) {
-		for _, arg := range args {
-			vm.Log("arg: %v", arg)
-		}
-		return nil, vm.Error("%s(%d) called with too many args (%d)", funcName, len(function.Args), len(args))
+	if len(fc.Block) > len(function.Args) {
+		return nil, vm.Error("%s(%d) called with too many args (%d)", fc.Name, len(function.Args), len(fc.Block))
 	}
 
 	funcArgs := make(map[string]*Token)
 	minimumArgs := len(function.Args)
 	for i := 0; i < len(function.Args); i++ {
-		if i < len(args) {
-			funcArgs[function.Args[i].Name] = args[i]
+		if i < len(fc.Block) {
+			tValue, _, err := NewEvaluator(vm, fc.Block[i]).Eval(true)
+			if err != nil {
+				return nil, err
+			}
+			funcArgs[function.Args[i].Name] = tValue
 		} else {
 			if function.Args[i].DefaultValue != nil && minimumArgs == len(function.Args) {
 				minimumArgs = i-1
@@ -408,31 +404,27 @@ func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
 			funcArgs[function.Args[i].Name] = function.Args[i].DefaultValue
 		}
 	}
-	if len(args) < minimumArgs {
-		return nil, vm.Error("%s(%d) called with less than required args (%d/%d)", funcName, len(function.Args), len(args), minimumArgs)
+	if len(fc.Block) < minimumArgs {
+		return nil, vm.Error("%s(%d) called with less than required args (%d/%d)", fc.Name, len(function.Args), len(fc.Block), minimumArgs)
 	}
 
-	vm.SetError(0)
-	vm.SetExtended(0)
-	vm.SetReturnValue(NewToken(tNUMBER, 0))
-
 	if function.Func != nil {
+		vm.SetError(0)
+		vm.SetExtended(0)
+		vm.SetReturnValue(NewToken(tNUMBER, 0))
 		return function.Func(vm, funcArgs)
 	}
 	if function.Block != nil {
-		vmFunc, preprocess := vm.ExtendVM(function.Block)
-		if preprocess != nil {
-			return nil, preprocess
-		}
-		vmFunc.numParams = len(args)
+		vmFunc, _ := vm.ExtendVM(function.Block, false)
+		vmFunc.numParams = len(fc.Block)
 
 		for i := 0; i < len(function.Args); i++ {
 			vm.Log("func block: %d", i)
-			if i < len(args) {
-				vm.Log("set func value %s = %v", function.Args[i].Name, args[i])
-				vmFunc.SetVariable(function.Args[i].Name, args[i])
+			if i < len(fc.Block) {
+				vm.Log("set func value %s = %v", function.Args[i].Name, funcArgs[function.Args[i].Name])
+				vmFunc.SetVariable(function.Args[i].Name, funcArgs[function.Args[i].Name])
 			} else {
-				vm.Log("set func value %s = %v", function.Args[i].Name, function.Args[i].DefaultValue)
+				vm.Log("set default func value %s = %v", function.Args[i].Name, function.Args[i].DefaultValue)
 				vmFunc.SetVariable(function.Args[i].Name, function.Args[i].DefaultValue)
 			}
 		}
@@ -447,5 +439,5 @@ func (vm *AutoItVM) HandleFunc(funcName string, args []*Token) (*Token, error) {
 		vm.SetReturnValue(vmFunc.GetReturnValue())
 		return vmFunc.returnValue, nil
 	}
-	return nil, vm.Error("no handler for function %s", funcName)
+	return nil, vm.Error("no handler for function %s", fc.Name)
 }

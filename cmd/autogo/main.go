@@ -17,6 +17,7 @@ func runVM(scriptPath string, script []byte) error {
 	if err != nil {
 		return err
 	}
+	//vm.Logger = true
 
 	return vm.Run()
 }
@@ -44,7 +45,7 @@ func main() {
 			}
 		}
 	} else {
-		err := runVM("SCRIPT.AU3", []byte(Script))
+		err := runVM("main.au3", []byte(Script))
 		if err != nil {
 			fmt.Println(err)
 		}
