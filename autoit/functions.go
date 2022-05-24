@@ -57,6 +57,8 @@ func (vm *AutoItVM) HandleCall(fc *FunctionCall) (*Token, error) {
 			if tValue.Type == tDEFAULT {
 				if function.Args[i].DefaultValue != nil {
 					tValue = function.Args[i].DefaultValue
+				} else {
+					return nil, vm.Error("%s has no default value for argument %d/%d", fc.Name, i+1, len(function.Args))
 				}
 			}
 			funcArgs[function.Args[i].Name] = tValue

@@ -37,7 +37,7 @@ func init() {
 	//Type checks
 	stdFunctions["vargettype"] = &Function{
 		Args: []*FunctionArg{
-			&FunctionArg{Name: "expression"},
+			&FunctionArg{Name: "expression", DefaultValue: NewToken(tDEFAULT, "")},
 		},
 		Func: func(vm *AutoItVM, args map[string]*Token) (*Token, error) {
 			varType := string(args["expression"].Type)
