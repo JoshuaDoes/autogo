@@ -19,10 +19,11 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 	if tSource == nil {
 		return nil, nil
 	}
+	e.vm.Log("evaluator:mergeValue: tSource: %v", *tSource)
 	switch tSource.Type {
 	case tMACRO:
 		tDest, err := e.vm.GetMacro(tSource.String())
-		e.vm.Log("macro: %v", *tDest)
+		e.vm.Log("macro: @%s -> %v", tSource.String(), *tDest)
 		if err != nil {
 			return nil, err
 		}
@@ -39,6 +40,20 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 			return nil, err
 		}
 		return NewToken(tBOOLEAN, !tDest.Bool()), nil
+	case tCALL, tUDF:
+		e.vm.Log("call: %v", *tSource)
+		functionCall := e.vm.GetHandle(tSource.String())
+		if functionCall == nil {
+			return tSource, nil
+			//return nil, e.error("undefined call attempt, did preprocessing fail?: %v", *tSource)
+		}
+		tDest, err := e.vm.HandleCall(functionCall.(*FunctionCall))
+		if err != nil {
+			e.vm.Log("call failed: %v", err)
+			return nil, err
+		}
+		e.vm.Log("call succeeded, merging value: %v", *tDest)
+		return e.mergeValue(tDest)
 	case tVARIABLE:
 		tDest := e.vm.GetVariable(tSource.String())
 		if tDest == nil {
@@ -50,8 +65,10 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 
 	tOp := e.readToken()
 	if tOp != nil {
+		e.vm.Log("getting source value: %v", *tSource)
 		tSourceValue, _, err := NewEvaluator(e.vm, []*Token{tSource}).Eval(true)
 		if err != nil {
+			e.vm.Log("error getting source value: %v %v", *tSource, err)
 			return nil, err
 		}
 
@@ -59,10 +76,11 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 		case tOP:
 			switch tOp.String() {
 			case "&":
+				e.vm.Log("trying to append from pos %d: %v %v", e.pos, *e.tokens[e.pos], e.tokens[e.pos:])
 				tValue, tRead, err := NewEvaluator(e.vm, e.tokens[e.pos:]).Eval(true)
 				e.move(tRead)
 				if err != nil {
-					return nil, e.error("could not append value: %v", err)
+					return nil, e.error("could not append value: %v %v", *tSource, err)
 				}
 				if tValue == nil {
 					return nil, e.error("could not append nil value")
@@ -79,7 +97,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("no value to sum: %v", err)
 				}
 
-				tDest := NewToken(tNUMBER, tSourceValue.Float64() + tValue.Float64())
+				tDest := NewToken(tDOUBLE, tSourceValue.Float64() + tValue.Float64())
 				e.vm.Log("sum: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "-":
@@ -89,7 +107,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("no value to subtract: %v", err)
 				}
 
-				tDest := NewToken(tNUMBER, tSourceValue.Float64() - tValue.Float64())
+				tDest := NewToken(tDOUBLE, tSourceValue.Float64() - tValue.Float64())
 				e.vm.Log("subtract: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "*":
@@ -99,7 +117,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("no value to multiply: %v", err)
 				}
 
-				tDest := NewToken(tNUMBER, tSourceValue.Float64() * tValue.Float64())
+				tDest := NewToken(tDOUBLE, tSourceValue.Float64() * tValue.Float64())
 				e.vm.Log("multiply: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "/":
@@ -109,7 +127,7 @@ func (e *Evaluator) mergeValue(tSource *Token) (*Token, error) {
 					return nil, e.error("no value to divide: %v", err)
 				}
 
-				tDest := NewToken(tNUMBER, tSourceValue.Float64() / tValue.Float64())
+				tDest := NewToken(tDOUBLE, tSourceValue.Float64() / tValue.Float64())
 				e.vm.Log("divide: %v", *tDest)
 				return e.mergeValue(tDest)
 			case "<":
@@ -205,7 +223,45 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 		}
 		*/
 		return nil, e.pos, e.error("block not implemented")
-	case tSTRING, tNUMBER, tBOOLEAN, tNOT, tBINARY, tMACRO, tHANDLE:
+		//return nil, e.pos, e.error("expect value: %v", expectValue)
+	case tEXTEND:
+		if !expectValue {
+			return nil, e.pos, e.error("unexpected value")
+		}
+
+		//Make sure we have a comment and/or end of line next, no other reason to use _ in a script
+		for i := e.pos; i < len(e.tokens); i++ {
+			tEoL := e.readToken()
+			e.vm.Log("tEoL test %d: (%s) %v", i, tEoL.Type, tEoL)
+			valid := false
+			switch tEoL.Type {
+				case tEOL:
+					valid = true
+					break
+				case tCOMMENT:
+					continue
+				default:
+					return nil, e.pos, e.error("expected end of line following extend, instead got: %v", tEoL)
+			}
+			if valid {
+				break
+			}
+		}
+
+		//tValue, err := e.mergeValue(tEval)
+		//if err != nil {
+		//	return nil, e.pos, e.error("no value to extend: %v", err)
+		//}
+		tValue := e.readToken()
+		return tValue, e.pos, nil
+		//tDest, err := e.mergeValue(tValue)
+		//return tDest, e.pos, err
+	case tDEFAULT:
+		if !expectValue {
+			return nil, e.pos, e.error("unexpected value")
+		}
+		return tEval, e.pos, nil
+	case tSTRING, tNUMBER, tDOUBLE, tBOOLEAN, tNOT, tNULL, tBINARY, tMACRO, tHANDLE:
 		if !expectValue {
 			return nil, e.pos, e.error("unexpected value")
 		}
@@ -683,16 +739,33 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 				return nil, e.pos, e.error("illegal token following variable $%s: %v", tVariable.String(), *tOp)
 			}
 		}
-	case tCALL:
+	case tCALL, tUDF:
+		e.vm.Log("tCALL: %s", tEval.String())
 		functionCall := e.vm.GetHandle(tEval.String())
 		if functionCall == nil {
+			if expectValue {
+				return tEval, e.pos, nil
+			}
 			return nil, e.pos, e.error("undefined call attempt, did preprocessing fail?: %v", *tEval)
 		}
-		tValue, err := e.vm.HandleCall(functionCall.(*FunctionCall))
+		funcCall := functionCall.(*FunctionCall)
+
+		funcCallBlock := ""
+		for i := 0; i < len(funcCall.Block); i++ {
+			for j := 0; j < len(funcCall.Block[i]); j++ {
+				funcCallBlock += fmt.Sprintf("funcCallBlock: %d:%d %s %v\n", i, j, funcCall.Block[i][j].Type, funcCall.Block[i][j])
+			}
+		}
+		e.vm.Log("root call: %s -- \n%s--", funcCall.Name, funcCallBlock)
+		
+		tValue, err := e.vm.HandleCall(funcCall)
 		if err != nil {
+			e.vm.Log("root call error: %v", err)
 			return nil, e.pos, err
 		}
+		e.vm.Log("root call merging: %v", tValue)
 		tValue, err = e.mergeValue(tValue)
+		e.vm.Log("root call merged: %v %v", err, tValue)
 		return tValue, e.pos, err
 	case tEOL:
 		if expectValue {
@@ -839,8 +912,16 @@ func (e *Evaluator) evalBlock(block []*Token) []*Token {
 	return split
 }
 func (e *Evaluator) error(format string, params ...interface{}) error {
-	if params != nil {
-		return fmt.Errorf("evaluator: " + format, params...)
+	lines := "?@?"
+	if e.pos >= 0 && e.pos < len(e.tokens) {
+		if e.tokens[e.pos] != nil {
+			lines = fmt.Sprintf("%d@%d", e.tokens[e.pos].LineNumber, e.tokens[e.pos].LinePos)
+		}
 	}
-	return fmt.Errorf("evaluator: " + format)
+
+	format = fmt.Sprintf("eval %s:\n- %s", lines, format)
+	if params != nil {
+		return fmt.Errorf(format, params...)
+	}
+	return fmt.Errorf(format)
 }

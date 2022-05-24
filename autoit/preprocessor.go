@@ -15,6 +15,14 @@ func (vm *AutoItVM) Preprocess() error {
 	if callErr != nil {
 		return callErr
 	}
+	/*ifErr := vm.PreprocessIfs()
+	if ifErr != nil {
+		return ifErr
+	}
+	switchErr := vm.PreprocessSwitches()
+	if switchErr != nil {
+		return switchErr
+	}*/
 	funcErr := vm.PreprocessFuncs()
 	if funcErr != nil {
 		return funcErr
@@ -55,7 +63,8 @@ func (vm *AutoItVM) PreprocessIncludes() error {
 				vm.tokens = append(vm.tokens[:vm.pos], append(includeTokens, vm.tokens[vm.pos:]...)...)
 				vm.RemoveTokens(vm.pos-2, vm.pos)
 				vm.Move(-1)
-				vm.Log("preprocess: include %s preloaded successfully: %v", includeFile.String(), includeTokens)
+				//vm.Log("preprocess: include %s preloaded successfully: %v", includeFile.String(), includeTokens)
+				vm.Log("preprocess: include %s preloaded successfully", includeFile.String())
 			}
 		case tEOL, tCOMMENT:
 			startLine = true
@@ -206,16 +215,30 @@ func (vm *AutoItVM) PreprocessFuncCalls() error {
 //PreprocessFuncCall reads and processes a function call
 func (vm *AutoItVM) PreprocessFuncCall() error {
 	startPos := vm.GetPos()
-	//vm.Log("call start pos: %d %v", startPos, vm.Token())
+	vm.Log("call start pos: %d %v", startPos, vm.Token())
 
 	tCall := vm.ReadToken()
 	if tCall.Type != tCALL {
 		return vm.Error("preprocessor: expected call, instead got: %v", tCall)
 	}
 
+	isStd := false
+	if _, exists := stdFunctions[strings.ToLower(tCall.String())]; exists {
+		vm.Log("preprocess: setting call to std")
+		vm.SetToken(startPos, NewToken(tCALL, tCall.String()))
+		isStd = true
+	} else {
+		vm.Log("preprocess: setting call to udf")
+		vm.SetToken(startPos, NewToken(tUDF, tCall.String()))
+	}
+
 	tStart := vm.ReadToken()
 	if tStart.Type != tLEFTPAREN {
-		return vm.Error("preprocessor: expected block after func call, instead got: %v", tStart)
+		//return vm.Error("preprocessor: expected block after func call, instead got: %v", tStart)
+
+		//We don't need to process a call block, it's (hopefully) being used literally
+		vm.Move(-1)
+		return nil
 	}
 
 	callBlocks := make([][]*Token, 0)
@@ -229,7 +252,7 @@ func (vm *AutoItVM) PreprocessFuncCall() error {
 		if blockToken == nil {
 			break
 		}
-		//vm.Log("preprocessor: call: depth %d step %v %s", depth, blockToken.Type, blockToken)
+		vm.Log("preprocessor: call: depth %d step %v %s", depth, blockToken.Type, blockToken)
 		switch blockToken.Type {
 		case tCALL:
 			vm.Log("preprocessor: call: encountered nested call")
@@ -238,18 +261,23 @@ func (vm *AutoItVM) PreprocessFuncCall() error {
 			if callErr != nil {
 				return callErr
 			}
+			callBlock = append(callBlock, vm.GetToken(vm.GetPos()-1))
 		case tSEPARATOR:
 			if depth > 0 {
 				return vm.Error("preprocessor: unexpected separator in nested func call block: %v", blockToken)
 			}
 			callBlocks = append(callBlocks, callBlock)
 			callBlock = make([]*Token, 0)
+			vm.Log("preprocess: call: (,) separator encountered so moving to next block")
 		case tLEFTPAREN:
 			depth++
+			vm.Log("preprocess: call: depth: %d", depth)
 		case tRIGHTPAREN:
 			depth--
+			vm.Log("preprocess: call: depth: %d", depth)
 		default:
 			callBlock = append(callBlock, blockToken)
+			//vm.Log("preprocess: call: added to callBlock: %v", *blockToken)
 		}
 	}
 	if len(callBlock) > 0 {
@@ -258,14 +286,18 @@ func (vm *AutoItVM) PreprocessFuncCall() error {
 
 	functionCall := &FunctionCall{Name: tCall.String(), Block: callBlocks}
 	tHandle := vm.AddHandle(functionCall)
-	vm.SetToken(startPos, NewToken(tCALL, tHandle.Handle()))
-	vm.Log("preprocess: call preloaded successfully: %v %v", tCall.String(), callBlocks)
+	if isStd {
+		vm.SetToken(startPos, NewToken(tCALL, tHandle.Handle()))
+	} else {
+		vm.SetToken(startPos, NewToken(tUDF, tHandle.Handle()))
+	}
+	vm.Log("preprocess: call preloaded successfully: %s -> %s = %v", tCall.String(), tHandle.String(), callBlocks)
 
 	endPos := vm.GetPos()
 	if endPos >= len(vm.tokens) {
 		//vm.Log("call end pos greater than end")
 	}
-	//vm.Log("call end pos: %d %v", endPos, vm.GetToken(endPos))
+	vm.Log("call end pos: %d %v", endPos, vm.GetToken(endPos))
 	vm.RemoveTokens(startPos+1, endPos)
 	return nil
 }

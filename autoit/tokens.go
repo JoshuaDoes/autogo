@@ -67,8 +67,8 @@ func (t *Token) String() string {
 	switch t.Type {
 	case tBINARY:
 		return "0x"+t.Data
-	case tHANDLE:
-		return ""
+	/*case tHANDLE:
+		return ""*/
 	}
 	return t.Data
 }
@@ -76,26 +76,29 @@ func (t *Token) Int() int {
 	if t.IsEmpty() {
 		return 0
 	}
-	data := t.Data
-	data = strings.ReplaceAll(data, "\r", "")
-	data = strings.ReplaceAll(data, "\n", "")
-	data = strings.ReplaceAll(data, "\t", "")
-	data = strings.ReplaceAll(data, " ", "")
+	data := strip(t.Data)
 	number, err := strconv.Atoi(data)
 	if err != nil {
 		return 0
 	}
 	return number
 }
+func (t *Token) Uint() uint {
+	if t.IsEmpty() {
+		return 0
+	}
+	data := strip(t.Data)
+	number, err := strconv.ParseUint(data, 10, 0)
+	if err != nil {
+		return 0
+	}
+	return uint(number)
+}
 func (t *Token) Int64() int64 {
 	if t.IsEmpty() {
 		return 0
 	}
-	data := t.Data
-	data = strings.ReplaceAll(data, "\r", "")
-	data = strings.ReplaceAll(data, "\n", "")
-	data = strings.ReplaceAll(data, "\t", "")
-	data = strings.ReplaceAll(data, " ", "")
+	data := strip(t.Data)
 	number, err := strconv.ParseInt(data, 10, 64)
 	if err != nil {
 		return 0
@@ -106,11 +109,7 @@ func (t *Token) Float64() float64 {
 	if t.IsEmpty() {
 		return 0
 	}
-	data := t.Data
-	data = strings.ReplaceAll(data, "\r", "")
-	data = strings.ReplaceAll(data, "\n", "")
-	data = strings.ReplaceAll(data, "\t", "")
-	data = strings.ReplaceAll(data, " ", "")
+	data := strip(t.Data)
 	number, err := strconv.ParseFloat(data, 64)
 	if err != nil {
 		return 0
@@ -142,14 +141,23 @@ func (t *Token) Handle() string {
 	return ""
 }
 
+func strip(txt string) string {
+	txt = strings.ReplaceAll(txt, "\r", "")
+	txt = strings.ReplaceAll(txt, "\n", "")
+	txt = strings.ReplaceAll(txt, "\t", "")
+	txt = strings.ReplaceAll(txt, " ", "")
+	return txt
+}
+
 type TokenType string
 const (
 	//Internal tokens
 	tILLEGAL TokenType = "ILLEGAL"
 	tEOL TokenType = "EOL"
 	tEXTEND TokenType = "EXTEND"
-	tCALL TokenType = "CALL"
-	tSTRING TokenType = "STRING"
+	tCALL TokenType = "Function"
+	tUDF TokenType = "UserFunction"
+	tSTRING TokenType = "String"
 	tFLAG TokenType = "FLAG"
 	tMACRO TokenType = "MACRO"
 	tCOMMENT TokenType = "COMMENT"
@@ -161,14 +169,15 @@ const (
 	tSEPARATOR TokenType = "SEPARATOR"
 	tOP TokenType = "OP"
 	tEXIT TokenType = "EXIT"
-	tNULL TokenType = "NULL"
-	tDEFAULT TokenType = "DEFAULT"
-	tBOOLEAN TokenType = "BOOLEAN"
+	tNULL TokenType = "Null"
+	tDEFAULT TokenType = "Keyword"
+	tBOOLEAN TokenType = "Bool"
 	tAND TokenType = "AND"
 	tOR TokenType = "OR"
 	tNOT TokenType = "NOT"
-	tNUMBER TokenType = "NUMBER"
-	tBINARY TokenType = "BINARY"
+	tNUMBER TokenType = "Int32"
+	tDOUBLE TokenType = "Double"
+	tBINARY TokenType = "Binary"
 	tFUNC TokenType = "FUNC"
 	tFUNCRETURN TokenType = "FUNCRETURN"
 	tFUNCEND TokenType = "FUNCEND"

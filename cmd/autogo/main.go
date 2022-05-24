@@ -10,6 +10,7 @@ import (
 
 var (
 	Script = ";INTERNAL SCRIPT\n#include \"main.au3\""
+	Debug = false
 )
 
 func runVM(scriptPath string, script []byte) error {
@@ -17,7 +18,7 @@ func runVM(scriptPath string, script []byte) error {
 	if err != nil {
 		return err
 	}
-	//vm.Logger = true
+	vm.Logger = Debug
 
 	return vm.Run()
 }
@@ -29,6 +30,8 @@ func main() {
 			switch strings.ToLower(arg) {
 			case "/errorstdout":
 				os.Stderr = os.Stdout
+			case "/debug":
+				Debug = true
 			default:
 				scripts = append(scripts, arg)
 			}

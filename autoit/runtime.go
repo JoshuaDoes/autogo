@@ -137,7 +137,7 @@ func (vm *AutoItVM) Step() error {
 			os.Exit(vm.exitCode)
 		}
 		vm.HandleCall(&FunctionCall{Name: vm.exitMethod})
-	case tSCOPE, tVARIABLE, tCALL, tFUNC, tIF, tELSE, tELSEIF, tIFEND, tCASE, tSWITCH, tSWITCHEND:
+	case tSCOPE, tVARIABLE, tCALL, tUDF, tFUNC, tIF, tELSE, tELSEIF, tIFEND, tCASE, tSWITCH, tSWITCHEND:
 		vm.Move(-1)
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)
@@ -216,18 +216,20 @@ func (vm *AutoItVM) Log(format string, params ...interface{}) {
 	if format[len(format)-1] != '\n' {
 		format += "\n"
 	}
-	time := fmt.Sprintf("%v", time.Now())
+
+	format = fmt.Sprintf("[%v] vm %d@%d: %s", time.Now(), vm.tokens[vm.pos].LineNumber, vm.tokens[vm.pos].LinePos, format)
 	if params != nil {
-		fmt.Printf("[" + time + "] vm: " + format, params...)
+		fmt.Printf(format, params...)
 	} else {
-		fmt.Printf("[" + time + "] vm: " + format)
+		fmt.Printf(format)
 	}
 }
 func (vm *AutoItVM) Error(format string, params ...interface{}) error {
+	format = fmt.Sprintf("\nruntime %d@%d:\n%s", vm.tokens[vm.pos].LineNumber, vm.tokens[vm.pos].LinePos, format)
 	if params != nil {
-		return fmt.Errorf("runtime: " + format, params...)
+		return fmt.Errorf(format, params...)
 	}
-	return fmt.Errorf("runtime: " + format)
+	return fmt.Errorf(format)
 }
 
 func (vm *AutoItVM) Running() bool {
@@ -286,6 +288,7 @@ func (vm *AutoItVM) ExtendVM(tokens []*Token, preprocess bool) (*AutoItVM, error
 	vmNew.ranIfStatement = false
 	vmNew.tokens = tokens
 	vmNew.parentScope = vm
+	vmNew.Logger = vm.Logger
 	if preprocess {
 		return vmNew, vmNew.Preprocess()
 	}
@@ -321,8 +324,10 @@ func (vm *AutoItVM) GetToken(pos int) *Token {
 //SetToken sets the token at given position to the given token
 func (vm *AutoItVM) SetToken(pos int, token *Token) {
 	if pos >= len(vm.tokens) {
+		vm.Log("SetToken(%d, %v) failed, token count: %d", pos, *token, len(vm.tokens))
 		return
 	}
+	vm.Log("SetToken(%d, %v)", pos, *token)
 	vm.tokens[pos] = token
 }
 //RemoveTokens removes the specified position ranges of tokens
@@ -331,13 +336,14 @@ func (vm *AutoItVM) RemoveTokens(startPos, endPos int) {
 		return
 	}
 
-	vm.Log("removing tokens %d to %d", startPos, endPos)
+	vm.Log("removing tokens %d (%v) to %d (%v)", startPos, vm.tokens[startPos], endPos, vm.tokens[endPos])
 	//vm.Log("old tokens: %v\n", vm.tokens)
-	//vm.Log("old pos: %d\n", vm.pos)
+	vm.Log("old pos: %d %v\n", vm.pos, vm.tokens[vm.pos-1:vm.pos+1])
 	vm.tokens = append(vm.tokens[:startPos], vm.tokens[endPos:]...)
 	vm.Move(-1 * (endPos-startPos))
+	//vm.Move(1)
 	//vm.Log("new tokens: %v\n", vm.tokens)
-	//vm.Log("new pos: %d\n", vm.pos)
+	vm.Log("new pos: %d %v\n", vm.pos, vm.tokens[vm.pos-1:vm.pos+1])
 }
 //RemoveToken removes the specified position from the tokens
 func (vm *AutoItVM) RemoveToken(pos int) {
@@ -351,6 +357,10 @@ func (vm *AutoItVM) RemoveToken(pos int) {
 //GetPos returns the current position
 func (vm *AutoItVM) GetPos() int {
 	return vm.pos
+}
+//SetPos sets the new position
+func (vm *AutoItVM) SetPos(pos int) {
+	vm.pos = pos
 }
 //Move moves the position by the specified amount
 func (vm *AutoItVM) Move(direction int) {

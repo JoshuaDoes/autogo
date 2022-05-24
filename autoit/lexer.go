@@ -130,8 +130,7 @@ func (l *Lexer) ReadToken() (*Token, error) {
 					l.Move(-2)
 					tmpNumber, err := l.ReadNumber()
 					if err == nil {
-						token.Type = tNUMBER
-						token.Data = tmpNumber
+						token = tmpNumber
 					} else {
 						//fmt.Println(err)
 					}
@@ -150,8 +149,7 @@ func (l *Lexer) ReadToken() (*Token, error) {
 					l.Move(-2)
 					tmpNumber, err := l.ReadNumber()
 					if err == nil {
-						token.Type = tNUMBER
-						token.Data = tmpNumber
+						token = tmpNumber
 					}
 				}
 			} else if isIdent(r) {
@@ -272,7 +270,7 @@ func (l *Lexer) ReadRune() (rune, error) {
 
 	return r, nil
 }
-func (l *Lexer) ReadNumber() (string, error) {
+func (l *Lexer) ReadNumber() (*Token, error) {
 	read := ""
 	readDeci := false
 	for {
@@ -286,7 +284,7 @@ func (l *Lexer) ReadNumber() (string, error) {
 		}
 		if r == '.' {
 			if readDeci {
-				return "", fmt.Errorf("two decimal places in number")
+				return nil, fmt.Errorf("two decimal places in number")
 			}
 			if read == "" {
 				read = "0"
@@ -304,9 +302,13 @@ func (l *Lexer) ReadNumber() (string, error) {
 		break
 	}
 	if read == "" {
-		return "", fmt.Errorf("no number was read")
+		return nil, fmt.Errorf("no number was read")
 	}
-	return read, nil
+
+	if readDeci {
+		return NewToken(tDOUBLE, read), nil
+	}
+	return NewToken(tNUMBER, read), nil
 }
 func isBinary(r rune) bool {
 	if unicode.IsDigit(r) {
