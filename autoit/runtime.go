@@ -21,6 +21,7 @@ type AutoItVM struct {
 	funcs map[string]*Function
 	pos int
 	preprocessed bool
+	skipPreprocess bool
 
 	//Runtime and memory
 	running bool
@@ -81,10 +82,10 @@ func NewAutoItTokenVM(scriptPath string, tokens []*Token, parentScope *AutoItVM)
 
 func (vm *AutoItVM) Run() error {
 	if vm.Running() {
-		return nil
+		return vm.Error("vm already running")
 	}
 
-	if !vm.preprocessed {
+	if !vm.preprocessed && !vm.skipPreprocess {
 		preprocess := vm.Preprocess()
 		if preprocess != nil {
 			return preprocess
@@ -137,7 +138,7 @@ func (vm *AutoItVM) Step() error {
 			os.Exit(vm.exitCode)
 		}
 		vm.HandleCall(&FunctionCall{Name: vm.exitMethod})
-	case tSCOPE, tVARIABLE, tCALL, tUDF, tFUNC, tIF, tELSE, tELSEIF, tIFEND, tCASE, tSWITCH, tSWITCHEND:
+	case tSCOPE, tVARIABLE, tCALL, tUDF, tFUNC, tIF, tELSE, tELSEIF, tIFEND, tCASE, tSWITCH, tSWITCHEND, tFOR:
 		vm.Move(-1)
 		eval := NewEvaluator(vm, vm.tokens[vm.pos:])
 		_, tRead, err := eval.Eval(false)
@@ -291,6 +292,8 @@ func (vm *AutoItVM) ExtendVM(tokens []*Token, preprocess bool) (*AutoItVM, error
 	vmNew.Logger = vm.Logger
 	if preprocess {
 		return vmNew, vmNew.Preprocess()
+	} else {
+		vmNew.skipPreprocess = true
 	}
 	return vmNew, nil
 }

@@ -44,9 +44,15 @@ ConsoleWrite("----" & @CRLF & _
 				"$fuFunc:" & @TAB & @TAB & VarGetType($fuFunc) & @CRLF & _
 "----" & @CRLF)
 
-Test("asdf123", Default)
+For $i = 2 To $iInt Step - 1
+	For $j = $iInt To 10
+		$iInt = $iInt + $i + $j
+		Test($i, $j)
+	Next
+Next
+
+ConsoleWrite($iInt & @CRLF)
 
 Func Test($msg1, $msg2 = "asdf")
-	ConsoleWrite($msg1 & @CRLF)
-	ConsoleWrite($msg2 & @CRLF)
+	ConsoleWrite($msg1 & " -> " & $msg2 & @CRLF)
 EndFunc   ;==>Test

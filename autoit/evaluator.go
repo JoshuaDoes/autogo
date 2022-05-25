@@ -739,6 +739,22 @@ func (e *Evaluator) Eval(expectValue bool) (*Token, int, error) {
 				return nil, e.pos, e.error("illegal token following variable $%s: %v", tVariable.String(), *tOp)
 			}
 		}
+	case tFOR:
+		if expectValue {
+			return nil, e.pos, e.error("illegal for declaration when expecting value")
+		}
+
+		forHandle := e.vm.GetHandle(tEval.String())
+		if forHandle == nil {
+			return nil, e.pos, e.error("undefined for attempt, did preprocessing fail?: %v", *tEval)
+		}
+		forCall := forHandle.(*ForCall)
+
+		forErr := forCall.Run(e.vm)
+		if forErr != nil {
+			e.vm.Log("for call error: %v", forErr)
+		}
+		return nil, e.pos, nil
 	case tCALL, tUDF:
 		e.vm.Log("tCALL: %s", tEval.String())
 		functionCall := e.vm.GetHandle(tEval.String())

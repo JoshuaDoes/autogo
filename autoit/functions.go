@@ -29,13 +29,26 @@ type FunctionCall struct {
 	Block [][]*Token //List of token blocks to evaluate each argument for the function call
 }
 
-func (vm *AutoItVM) HandleCall(fc *FunctionCall) (*Token, error) {
-	function, exists := vm.funcs[strings.ToLower(fc.Name)]
+func (vm *AutoItVM) GetFunction(fc *FunctionCall) *Function {
+	function, exists := stdFunctions[strings.ToLower(fc.Name)]
 	if !exists {
-		function, exists = stdFunctions[strings.ToLower(fc.Name)]
+		function, exists = vm.funcs[strings.ToLower(fc.Name)]
 		if !exists {
-			return nil, vm.Error("undefined function %s", fc.Name)
+			if vm.parentScope != nil {
+				function = vm.parentScope.GetFunction(fc)
+			}
+			if function == nil {
+				return nil
+			}
 		}
+	}
+	return function
+}
+
+func (vm *AutoItVM) HandleCall(fc *FunctionCall) (*Token, error) {
+	function := vm.GetFunction(fc)
+	if function == nil {
+		return nil, vm.Error("undefined function %s", fc.Name)
 	}
 
 	if fc.Block == nil {

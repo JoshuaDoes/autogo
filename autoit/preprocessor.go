@@ -23,6 +23,10 @@ func (vm *AutoItVM) Preprocess() error {
 	if switchErr != nil {
 		return switchErr
 	}*/
+	forErr := vm.PreprocessFors()
+	if forErr != nil {
+		return forErr
+	}
 	funcErr := vm.PreprocessFuncs()
 	if funcErr != nil {
 		return funcErr
@@ -74,6 +78,226 @@ func (vm *AutoItVM) PreprocessIncludes() error {
 	}
 
 	vm.Stop()
+	return nil
+}
+
+func (vm *AutoItVM) PreprocessFors() error {
+	startLine := true
+	for {
+		token := vm.ReadToken()
+		if token == nil {
+			break
+		}
+		switch token.Type {
+		case tFOR:
+			if !startLine {
+				return vm.Error("preprocess: unexpected for")
+			}
+			startLine = false
+
+			forErr := vm.PreprocessFor()
+			if forErr != nil {
+				return forErr
+			}
+		case tEOL, tCOMMENT:
+			startLine = true
+		default:
+			startLine = false
+		}
+	}
+
+	vm.Stop()
+	return nil
+}
+
+func (vm *AutoItVM) PreprocessFor() error {
+	startPos := vm.GetPos() - 1
+	vm.Log("preprocessor: for start pos: %d %v", startPos, vm.Token())
+
+	tIndex := vm.ReadToken()
+	if tIndex.Type != tVARIABLE {
+		return vm.Error("preprocessor: expected index variable after for, instead got: %v", tIndex)
+	}
+
+	tEquals := vm.ReadToken()
+	if tEquals.Type != tOP || tEquals.String() != "=" {
+		return vm.Error("preprocessor: expected equals expression after for index variable, instead got: %v", tEquals)
+	}
+
+	tStartIndex := make([]*Token, 0)
+	for {
+		tIndex := vm.ReadToken()
+		done := false
+		switch tIndex.Type {
+		case tTO:
+			if len(tStartIndex) == 0 {
+				return vm.Error("preprocessor: missing start index in for expression")
+			}
+			done = true
+			break
+		case tCOMMENT, tEOL, tSTEP, tFOR:
+			return vm.Error("preprocessor: unexpected token during for start index expression: %v", tIndex)
+		default:
+			tStartIndex = append(tStartIndex, tIndex)
+		}
+		if done {
+			break
+		}
+	}
+
+	tEndIndex := make([]*Token, 0)
+	exprStep := false
+	for {
+		tIndex := vm.ReadToken()
+		done := false
+		switch tIndex.Type {
+		case tSTEP:
+			if len(tEndIndex) == 0 {
+				return vm.Error("preprocessor: step expression declared during for expression, but missing end index")
+			}
+			exprStep = true
+			done = true
+			break
+		case tCOMMENT:
+			continue
+		case tEOL:
+			done = true
+			break
+		case tTO, tFOR:
+			return vm.Error("preprocessor: unexpected token during for end index expression: %v", tIndex)
+		default:
+			tEndIndex = append(tEndIndex, tIndex)
+		}
+		if done {
+			break
+		}
+	}
+
+	tStepIndex := make([]*Token, 0)
+	if exprStep {
+		for {
+			tIndex := vm.ReadToken()
+			done := false
+			switch tIndex.Type {
+			case tSTEP, tFOR, tTO:
+				return vm.Error("preprocessor: unexpected token during for step index expression: %v", tIndex)
+			case tCOMMENT:
+				continue
+			case tEOL:
+				done = true
+				break
+			default:
+				tStepIndex = append(tStepIndex, tIndex)
+			}
+			if done {
+				break
+			}
+		}
+	}
+
+	tForBlock := make([]*Token, 0)
+	for {
+		tIndex := vm.ReadToken()
+		done := false
+		switch tIndex.Type {
+		case tFOR:
+			vm.Log("preprocessor: for: encountered nested for statement")
+			forErr := vm.PreprocessFor()
+			if forErr != nil {
+				return forErr
+			}
+			tForBlock = append(tForBlock, vm.GetToken(vm.GetPos()-1))
+		case tNEXT:
+			done = true
+			break
+		default:
+			tForBlock = append(tForBlock, tIndex)
+		}
+		if done {
+			break
+		}
+	}
+
+	tEoL := vm.ReadToken()
+	if tEoL.Type != tEOL && tEoL.Type != tCOMMENT {
+		return vm.Error("preprocessor: unexpected token following end of for ... next expression: %v", tEoL)
+	}
+	vm.Move(-1)
+
+	forCall := &ForCall{Index: tIndex, Start: tStartIndex, End: tEndIndex, Step: tStepIndex, Block: tForBlock}
+	tHandle := vm.AddHandle(forCall)
+	vm.SetToken(startPos, NewToken(tFOR, tHandle.Handle()))
+	vm.Log("preprocess: for statement preloaded successfully: %s = %v", tHandle.String(), *forCall)
+
+	endPos := vm.GetPos()
+	if endPos >= len(vm.tokens) {
+		//vm.Log("call end pos greater than end")
+	}
+	vm.Log("preprocessor: for end pos: %d %v", endPos, vm.GetToken(endPos))
+	vm.RemoveTokens(startPos+1, endPos)
+	return nil
+}
+
+type ForCall struct {
+	Index *Token
+	Start []*Token
+	End []*Token
+	Step []*Token
+	Block []*Token
+}
+func (fc *ForCall) Run(vm *AutoItVM) error {
+	vm.Log("FOR: START")
+	startIndex, _, err := NewEvaluator(vm, fc.Start).Eval(true)
+	if err != nil {
+		return err
+	}
+	si := startIndex.Int64()
+	vm.Log("FOR: SI: %d", si)
+
+	endIndex, _, err := NewEvaluator(vm, fc.End).Eval(true)
+	if err != nil {
+		return err
+	}
+	ei := endIndex.Int64()
+	vm.Log("FOR: EI: %d", ei)
+
+	for i := si; ; i++ {
+		//Calculate the next index step ahead of time in case of infinite loop
+		newI := i
+		if len(fc.Step) > 0 {
+			step := make([]*Token, 1)
+			step [0] = NewToken(tNUMBER, i)
+			step = append(step, fc.Step...)
+			tI, _, err := NewEvaluator(vm, step).Eval(true)
+			if err != nil {
+				return err
+			}
+			newI = tI.Int64()
+			if newI == i {
+				break
+			}
+		}
+		vm.Log("FOR: index:%d newIndex:%d", i, newI)
+
+		vmFor, _ := vm.ExtendVM(fc.Block, false)
+		vmFor.SetVariable(fc.Index.String(), NewToken(tNUMBER, i))
+		vmForErr := vmFor.Run()
+		if vmForErr != nil {
+			return vmForErr
+		}
+
+		if newI < i && newI < ei {
+			break
+		}
+		if newI > i && newI > ei {
+			break
+		}
+		if newI < si || newI >= ei {
+			break
+		}
+		i = newI
+	}
+	vm.Log("FOR: DONE")
 	return nil
 }
 
